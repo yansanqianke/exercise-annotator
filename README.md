@@ -8,6 +8,21 @@ Vue3 + FastAPI + SQLite + Chroma + LlamaIndex
 
 ## 快速启动
 
+### 1. 环境准备
+
+```bash
+# 后端 — 安装 Python 依赖
+cd backend && uv venv && uv pip install -r requirements.txt
+
+# 前端 — 安装 Node 依赖
+cd frontend && npm install
+
+# 初始化数据（默认管理员 + 示例学科/知识点）
+cd backend && source .venv/bin/activate && python init_data.py
+```
+
+### 2. 启动服务
+
 ```bash
 # 后端
 cd backend && source .venv/bin/activate
@@ -18,6 +33,19 @@ cd frontend && npm run dev
 ```
 
 - 后端：http://localhost:8000/health → `{"status":"ok"}`
+- 前端：http://localhost:5173
+
+### 3. 默认账户
+
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| admin | admin123 | 管理员 |
+
+首次使用：管理员登录 → `/admin/llm-config` 配置大模型 API Key → 激活配置。
+
+### 环境变量
+
+复制 `.env.example` 为 `.env` 并按需修改（开发阶段也可在管理页面配置）。
 - 前端：http://localhost:5173
 
 ## API 手动测试
