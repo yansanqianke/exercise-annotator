@@ -17,8 +17,9 @@ const menuItems = computed(() => {
       { path: '/knowledge-points', label: '知识点', icon: '🏷️' },
     ]},
     { group: '题目中心', children: [
-      { path: '/annotate', label: '题目标注', icon: '✍️' },
-      { path: '/documents', label: '文档解析', icon: '📄' },
+      { path: '/import', label: '题目导入', icon: '📥' },
+      { path: '/questions', label: '题目管理', icon: '📋' },
+      { path: '/documents', label: '参考资料', icon: '📖' },
     ]},
     { group: '工具', children: [
       { path: '/chat', label: 'AI 对话', icon: '💬' },
