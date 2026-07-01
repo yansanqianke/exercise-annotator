@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 from app.api.agent import router as agent_router
 from app.api.documents import router as documents_router
@@ -32,6 +33,7 @@ app.add_middleware(
 )
 
 # 注册路由
+app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(subjects_router)
 app.include_router(kps_router)

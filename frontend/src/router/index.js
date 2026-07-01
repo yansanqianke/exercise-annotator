@@ -52,6 +52,24 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: () => import('../views/admin/Users.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/agents',
+    name: 'AdminAgents',
+    component: () => import('../views/admin/Agents.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/logs',
+    name: 'AdminLogs',
+    component: () => import('../views/admin/Logs.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/admin/llm-config',
     name: 'LLMConfig',
     component: () => import('../views/admin/LLMConfig.vue'),
