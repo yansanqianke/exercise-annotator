@@ -34,6 +34,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/annotate',
+    name: 'Annotate',
+    component: () => import('../views/annotate/Annotate.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/chat',
     name: 'Chat',
     component: () => import('../views/chat/Chat.vue'),

@@ -115,7 +115,8 @@ onMounted(loadConfigs)
             :placeholder="isEditing ? '留空则不修改' : 'sk-xxx'" />
         </el-form-item>
         <el-form-item label="API 端点（可选）">
-          <el-input v-model="form.base_url" placeholder="留空使用默认，如 https://api.deepseek.com" />
+          <el-input v-model="form.base_url"
+            :placeholder="form.provider === 'deepseek' ? '默认 https://api.deepseek.com' : form.provider === 'qwen' ? '默认 https://dashscope.aliyuncs.com/compatible-mode/v1' : '默认 https://api.openai.com/v1'" />
         </el-form-item>
       </el-form>
       <template #footer>

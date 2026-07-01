@@ -28,6 +28,7 @@ function handleLogout() {
     <div class="nav-cards">
       <el-card><router-link to="/subjects">学科管理</router-link></el-card>
       <el-card><router-link to="/knowledge-points">知识点管理</router-link></el-card>
+      <el-card><router-link to="/annotate">题目标注</router-link></el-card>
       <el-card><router-link to="/chat">AI 对话</router-link></el-card>
       <el-card v-if="authStore.isAdmin"><router-link to="/admin/llm-config">大模型配置</router-link></el-card>
     </div>

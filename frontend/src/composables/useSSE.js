@@ -19,9 +19,11 @@ export function useSSE() {
     isStreaming.value = true
 
     const token = localStorage.getItem('access_token')
+    // 自动添加 /api 前缀（axios 之外 fetch 不共享 baseURL）
+    const fullUrl = url.startsWith('/api') ? url : `/api${url}`
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

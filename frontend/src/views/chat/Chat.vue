@@ -30,7 +30,7 @@ async function sendMessage() {
   const assistantMsg = { role: 'assistant', content: '', isStreaming: true }
   messages.value.push(assistantMsg)
 
-  await start('/agent/chat', { messages: apiMessages }, {
+  await start('/api/agent/chat', { messages: apiMessages }, {
     onThinking(chunk) {
       assistantMsg.content += chunk
       scrollToBottom()

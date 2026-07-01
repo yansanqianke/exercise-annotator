@@ -17,9 +17,16 @@ def build_client(db: Session) -> tuple[OpenAI, str]:
     if not config:
         raise ValueError("没有激活的大模型配置，请先在管理页面配置并激活")
 
+    # 未指定 base_url 时，按 provider 使用默认端点
+    base_url = config.base_url or {
+        "deepseek": "https://api.deepseek.com",
+        "openai": "https://api.openai.com/v1",
+        "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    }.get(config.provider, "")
+
     client = OpenAI(
         api_key=config.api_key,
-        base_url=config.base_url or None,
+        base_url=base_url or None,
     )
     return client, config.model
 
