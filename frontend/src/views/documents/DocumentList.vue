@@ -55,7 +55,8 @@ async function handleIndex(row) {
 async function handleExtract(row) {
   try {
     const result = await extractQuestionsApi(row.id)
-    ElMessage.success(`提取到 ${result.questions?.length || 0} 道题目`)
+    const count = result.saved || result.questions?.length || 0
+    ElMessage.success(`提取完成：识别 ${result.questions?.length || 0} 题，已入库 ${count} 题`)
     loadDocuments()
   } catch { /* */ }
 }

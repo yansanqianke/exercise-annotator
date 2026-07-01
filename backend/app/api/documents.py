@@ -137,8 +137,9 @@ def extract_questions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """从题目文档提取题目列表（LLM 解析）"""
+    """从题目文档提取题目并自动入库"""
     from app.models.document import Document as DocModel
+    from app.models.question import Question
     from app.services.llm import build_client
 
     doc_record = db.query(DocModel).filter(DocModel.id == doc_id).first()
@@ -168,10 +169,34 @@ def extract_questions(
             messages=[{"role": "user", "content": prompt}],
         )
 
-        import json
+        import json, re
         raw = response.choices[0].message.content
-        # 尝试提取 JSON 数组
+        # 容错解析 JSON 数组
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*\n?", "", raw)
+            raw = re.sub(r"\n?```\s*$", "", raw)
         questions = json.loads(raw)
-        return {"questions": questions}
+
+        # 自动入库
+        saved = 0
+        for q in questions:
+            if q.get("content", "").strip():
+                question = Question(
+                    subject_id=doc_record.subject_id,
+                    content=q["content"].strip(),
+                    type="short_answer",
+                    source_doc_id=doc_id,
+                    created_by=current_user.id,
+                )
+                db.add(question)
+                saved += 1
+
+        doc_record.status = "done"
+        db.commit()
+
+        return {"questions": questions, "saved": saved}
     except Exception as e:
+        doc_record.status = "failed"
+        db.commit()
         raise HTTPException(status_code=500, detail=f"提取失败: {str(e)}")
