@@ -55,6 +55,50 @@ def list_questions(
     return query.order_by(Question.id.desc()).all()
 
 
+@router.get("/export")
+def export_questions(
+    fmt: str = Query(default="csv", description="导出格式：csv 或 json"),
+    ids: str | None = Query(default=None, description="题目 ID 列表，逗号分隔"),
+    subject_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """导出题目（CSV / JSON）— 必须在 /{question_id} 之前定义"""
+    query = db.query(Question).options(
+        joinedload(Question.kp_maps).joinedload(QuestionKPMap.knowledge_point)
+    )
+
+    if ids:
+        id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
+        if id_list:
+            query = query.filter(Question.id.in_(id_list))
+    if subject_id is not None:
+        query = query.filter(Question.subject_id == subject_id)
+
+    questions = query.order_by(Question.id).all()
+    type_map = {"choice": "选择题", "judgment": "判断题", "short_answer": "简答题", "programming": "编程题"}
+
+    if fmt == "json":
+        data = []
+        for q in questions:
+            data.append({
+                "id": q.id, "subject_id": q.subject_id, "content": q.content,
+                "type": q.type, "difficulty": q.difficulty,
+                "kp_codes": [m.knowledge_point.code for m in q.kp_maps if m.knowledge_point],
+            })
+        return Response(content=json.dumps(data, ensure_ascii=False, indent=2), media_type="application/json")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "学科ID", "题型", "难度", "知识点编码", "题目正文"])
+    for q in questions:
+        kp_str = "; ".join(m.knowledge_point.code for m in q.kp_maps if m.knowledge_point)
+        writer.writerow([q.id, q.subject_id, type_map.get(q.type, q.type or ""), q.difficulty or "", kp_str, q.content])
+    csv_content = output.getvalue()
+    output.close()
+    return Response(content=csv_content, media_type="text/csv; charset=utf-8-sig")
+
+
 @router.post("", response_model=QuestionResponse, status_code=status.HTTP_201_CREATED)
 def create_question(
     body: QuestionCreate,
@@ -134,56 +178,3 @@ def delete_question(
     db.query(QuestionKPMap).filter(QuestionKPMap.question_id == question_id).delete()
     db.delete(question)
     db.commit()
-
-
-@router.get("/export")
-def export_questions(
-    fmt: str = Query(default="csv", description="导出格式：csv 或 json"),
-    ids: str | None = Query(default=None, description="题目 ID 列表，逗号分隔，不传则导出全部"),
-    subject_id: int | None = Query(default=None),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """导出题目（CSV / JSON）"""
-    query = db.query(Question).options(
-        joinedload(Question.kp_maps).joinedload(QuestionKPMap.knowledge_point)
-    )
-
-    if ids:
-        id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
-        if id_list:
-            query = query.filter(Question.id.in_(id_list))
-    if subject_id is not None:
-        query = query.filter(Question.subject_id == subject_id)
-
-    questions = query.order_by(Question.id).all()
-
-    type_map = {"choice": "选择题", "judgment": "判断题", "short_answer": "简答题", "programming": "编程题"}
-
-    if fmt == "json":
-        data = []
-        for q in questions:
-            data.append({
-                "id": q.id,
-                "subject_id": q.subject_id,
-                "content": q.content,
-                "type": q.type,
-                "difficulty": q.difficulty,
-                "kp_codes": [m.knowledge_point.code for m in q.kp_maps if m.knowledge_point],
-            })
-        return Response(content=json.dumps(data, ensure_ascii=False, indent=2), media_type="application/json")
-
-    # CSV
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["ID", "学科ID", "题型", "难度", "知识点编码", "题目正文"])
-    for q in questions:
-        kp_str = "; ".join(m.knowledge_point.code for m in q.kp_maps if m.knowledge_point)
-        writer.writerow([
-            q.id, q.subject_id,
-            type_map.get(q.type, q.type or ""),
-            q.difficulty or "", kp_str, q.content,
-        ])
-    csv_content = output.getvalue()
-    output.close()
-    return Response(content=csv_content, media_type="text/csv; charset=utf-8-sig")
