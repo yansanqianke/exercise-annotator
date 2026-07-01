@@ -4,9 +4,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.agent import router as agent_router
 from app.api.kps import router as kps_router
+from app.api.llm_config import router as llm_config_router
 from app.api.subjects import router as subjects_router
 from app.core.config import settings
+
+# 预导入全部模型 — 确保 SQLAlchemy 能解析所有 relationship
+from app.models.user import User  # noqa: F401
+from app.models.subject import Subject  # noqa: F401
+from app.models.knowledge_point import KnowledgePoint  # noqa: F401
+from app.models.question import Question, QuestionKPMap  # noqa: F401
+from app.models.document import Document  # noqa: F401
+from app.models.config import LLMConfig, Agent, SystemLog  # noqa: F401
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 
@@ -23,6 +33,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(subjects_router)
 app.include_router(kps_router)
+app.include_router(llm_config_router)
+app.include_router(agent_router)
 
 
 @app.get("/health")

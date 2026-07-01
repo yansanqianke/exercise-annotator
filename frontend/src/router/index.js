@@ -34,6 +34,18 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/chat',
+    name: 'Chat',
+    component: () => import('../views/chat/Chat.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin/llm-config',
+    name: 'LLMConfig',
+    component: () => import('../views/admin/LLMConfig.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     // 未匹配路由重定向到首页
     path: '/:pathMatch(.*)*',
     redirect: '/',
@@ -57,6 +69,19 @@ router.beforeEach((to, _from, next) => {
   // 已登录用户访问 guest 页面（登录/注册）时重定向到首页
   if (to.meta.guest && token) {
     return next('/')
+  }
+
+  // admin 专属页面检查角色
+  if (to.meta.requiresAdmin) {
+    // 从 JWT payload 解析角色（简单 base64 解码）
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      if (payload.role !== 'admin') {
+        return next('/')
+      }
+    } catch {
+      return next('/login')
+    }
   }
 
   next()
