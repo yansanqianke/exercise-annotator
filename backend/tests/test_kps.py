@@ -135,9 +135,9 @@ class TestKPDelete:
         response = client.delete("/api/kps/1", headers=get_auth_header(teacher_user))
         assert response.status_code == 204
 
-        # 列表仍然可见，但标记已删除
+        # 列表不再显示已删除知识点
         list_resp = client.get("/api/kps", headers=get_auth_header(teacher_user))
-        assert list_resp.json()[0]["is_deleted"] is True
+        assert len(list_resp.json()) == 0
 
     def test_delete_not_found(self, client, teacher_user):
         """删除不存在 — 返回 404"""

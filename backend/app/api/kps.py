@@ -37,7 +37,7 @@ def list_kps(
     current_user: User = Depends(get_current_user),
 ):
     """获取知识点列表，可按学科过滤"""
-    query = db.query(KnowledgePoint)
+    query = db.query(KnowledgePoint).filter(KnowledgePoint.is_deleted == False)
     if subject_id is not None:
         query = query.filter(KnowledgePoint.subject_id == subject_id)
     return query.order_by(KnowledgePoint.id).all()

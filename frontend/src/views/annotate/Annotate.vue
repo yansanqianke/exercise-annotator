@@ -4,7 +4,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSubjectsApi } from '../../api/subject'
 import { getKPsApi, createKPApi } from '../../api/kp'
-import { getQuestionsApi, updateQuestionKPsApi } from '../../api/question'
+import { getQuestionsApi, getQuestionApi, updateQuestionKPsApi } from '../../api/question'
 import { useSSE } from '../../composables/useSSE'
 
 const { isStreaming, start, abort } = useSSE()
@@ -151,16 +151,24 @@ async function saveEdit() {
 /** 确认建议知识点 — 创建并关联到题目 */
 async function confirmSuggestKp(index) {
   const s = result.value?.suggest_kps?.[index]
-  if (!s || !selectedSubject.value) return
+  const questionId = result.value?.question_id
+  if (!s || !selectedSubject.value || !questionId) return
   try {
-    await createKPApi({
+    const newKp = await createKPApi({
       subject_id: selectedSubject.value,
       name: s.name,
       description: s.description,
     })
-    ElMessage.success(`知识点 "${s.name}" 已创建`)
-    // 从建议列表中移除
+
+    // 获取题目当前已有 KP 关联，加上新创建的 KP
+    const question = await getQuestionApi(questionId)
+    const existingKpIds = (question.kp_maps || []).map(k => ({ kp_id: k.kp_id }))
+    existingKpIds.push({ kp_id: newKp.id })
+
+    await updateQuestionKPsApi(questionId, existingKpIds)
+    ElMessage.success(`知识点 "${s.name}" 已创建并关联到题目`)
     result.value.suggest_kps.splice(index, 1)
+    loadQuestions()
   } catch { /* */ }
 }
 
@@ -241,7 +249,7 @@ onMounted(() => {
         <el-table-column label="知识点" width="200">
           <template #default="{ row }">
             <el-tag v-for="k in row.kp_maps" :key="k.kp_id" size="small" style="margin: 2px">
-              {{ k.kp_code }}
+              {{ k.knowledge_point.code }}
             </el-tag>
           </template>
         </el-table-column>

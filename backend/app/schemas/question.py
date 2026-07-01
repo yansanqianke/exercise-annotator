@@ -10,13 +10,21 @@ class KPAssignment(BaseModel):
     kp_id: int
 
 
+class KPInfo(BaseModel):
+    """知识点简要信息（来自关联的 knowledge_point）"""
+    id: int
+    code: str
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
 class KPAssignmentResponse(BaseModel):
     """题目-知识点关联响应"""
     kp_id: int
-    kp_code: str
-    kp_name: str
     confidence: int | None
     is_manual: bool
+    knowledge_point: KPInfo
 
     model_config = {"from_attributes": True}
 
