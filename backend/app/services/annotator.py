@@ -22,16 +22,17 @@ ANNOTATION_PROMPT = """你是一个专业的教育领域知识点标注专家。
 {ref_context}
 
 ## 任务
-请分析以下题目，完成三项标注任务。
-输出必须是合法 JSON，格式严格如下：
+请分析以下题目，完成标注任务。输出必须是合法 JSON，格式严格如下：
 {{
   "kp_codes": ["DS-KP-XXX", ...],
+  "suggest_kps": [{{"name": "知识点名称", "description": "简要描述"}}, ...],
   "difficulty": 3,
   "question_type": "programming",
   "reasoning": "..."
 }}
 
-- kp_codes: 涉及的知识点编码列表，1-5个，必须是上面候选列表中的编码
+- kp_codes: 涉及的知识点编码列表，从候选列表中选择，1-5个。若无匹配则传空数组 []
+- suggest_kps: **重要** 如果题目涉及的知识点在候选列表中不存在，建议创建新知识点。每个建议包含 name（名称）和 description（简要描述，50字以内）。若无建议传空数组 []
 - difficulty: 难度 1(易)-5(难)
 - question_type: 题型，choice(选择题)/judgment(判断题)/short_answer(简答题)/programming(编程题)
 - reasoning: 简要说明标注依据（50字以内）
@@ -152,6 +153,7 @@ def annotate_stream(db: Session, content: str, subject_id: int, user_id: int):
         return
 
     kp_codes = parsed.get("kp_codes", [])
+    suggest_kps = parsed.get("suggest_kps", [])
     difficulty = parsed.get("difficulty", 3)
     question_type = parsed.get("question_type", "short_answer")
     reasoning = parsed.get("reasoning", "")
@@ -159,7 +161,7 @@ def annotate_stream(db: Session, content: str, subject_id: int, user_id: int):
     # 校验知识点编码
     valid_kps = _validate_kp_codes(kp_codes, subject_id, db)
 
-    # ⑤ 持久化
+    # ⑤ 持久化题目
     question = Question(
         subject_id=subject_id,
         content=content,
@@ -175,16 +177,17 @@ def annotate_stream(db: Session, content: str, subject_id: int, user_id: int):
         kp_map = QuestionKPMap(
             question_id=question.id,
             kp_id=kp.id,
-            confidence=100,  # 存储为整数百分比
+            confidence=100,
         )
         db.add(kp_map)
     db.commit()
 
-    # ⑥ 推送最终结果
+    # ⑥ 推送最终结果（含建议知识点）
     result = {
         "type": "result",
         "question_id": question.id,
         "kp_codes": [kp.code for kp in valid_kps],
+        "suggest_kps": suggest_kps,  # 新知识点建议
         "difficulty": difficulty,
         "question_type": question_type,
         "reasoning": reasoning,

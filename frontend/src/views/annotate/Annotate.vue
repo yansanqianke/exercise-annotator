@@ -3,7 +3,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSubjectsApi } from '../../api/subject'
-import { getKPsApi } from '../../api/kp'
+import { getKPsApi, createKPApi } from '../../api/kp'
 import { getQuestionsApi, updateQuestionKPsApi } from '../../api/question'
 import { useSSE } from '../../composables/useSSE'
 
@@ -148,6 +148,22 @@ async function saveEdit() {
   loadQuestions()
 }
 
+/** 确认建议知识点 — 创建并关联到题目 */
+async function confirmSuggestKp(index) {
+  const s = result.value?.suggest_kps?.[index]
+  if (!s || !selectedSubject.value) return
+  try {
+    await createKPApi({
+      subject_id: selectedSubject.value,
+      name: s.name,
+      description: s.description,
+    })
+    ElMessage.success(`知识点 "${s.name}" 已创建`)
+    // 从建议列表中移除
+    result.value.suggest_kps.splice(index, 1)
+  } catch { /* */ }
+}
+
 onMounted(() => {
   loadSubjects()
   loadQuestions()
@@ -200,6 +216,18 @@ onMounted(() => {
           {{ result.reasoning }}
         </el-descriptions-item>
       </el-descriptions>
+
+      <!-- 建议新知识点 -->
+      <div v-if="result.suggest_kps?.length" class="suggest-section">
+        <h4>建议新增以下知识点（教师确认后入库）</h4>
+        <div v-for="(sug, i) in result.suggest_kps" :key="i" class="suggest-item">
+          <div class="suggest-info">
+            <strong>{{ sug.name }}</strong>
+            <span class="suggest-desc">{{ sug.description }}</span>
+          </div>
+          <el-button size="small" type="success" @click="confirmSuggestKp(i)">确认入库</el-button>
+        </div>
+      </div>
     </el-card>
 
     <!-- 已标注题目列表 -->
@@ -247,4 +275,10 @@ onMounted(() => {
 .reasoning-text { white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow-y: auto; background: #f5f7fa; padding: 12px; border-radius: 4px; font-size: 14px; }
 .result-card { margin-bottom: 16px; }
 .questions-card { margin-top: 16px; }
+.suggest-section { margin-top: 16px; padding: 12px; background: #fdf6ec; border-radius: 8px; border: 1px solid #faecd8; }
+.suggest-section h4 { margin-bottom: 8px; color: #e6a23c; }
+.suggest-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #faecd8; }
+.suggest-item:last-child { border-bottom: none; }
+.suggest-info { display: flex; flex-direction: column; }
+.suggest-desc { font-size: 12px; color: #999; margin-top: 2px; }
 </style>
