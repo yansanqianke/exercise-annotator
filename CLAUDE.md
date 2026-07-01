@@ -13,3 +13,36 @@
 - **Python 环境管理**：使用 `uv` 管理 Python 依赖和虚拟环境
 - **全局环境命令**：任何影响全局环境（安装系统包、修改全局 Python 等）的命令，需先获得用户允许
 - **适时提交**：在合适的时机（阶段完成、功能就绪）主动进行 Git 提交
+
+## 开发命令
+
+```bash
+# 后端 — 环境安装
+cd backend && uv venv && uv pip install -r requirements.txt
+
+# 后端 — 开发服务器
+cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000
+
+# 后端 — 数据库迁移
+cd backend && source .venv/bin/activate
+alembic revision --autogenerate -m "描述变更"
+alembic upgrade head
+
+# 后端 — 测试
+cd backend && source .venv/bin/activate && python -m pytest tests/ -v
+
+# 前端 — 环境安装
+cd frontend && npm install
+
+# 前端 — 开发服务器（含 API 代理到 :8000）
+cd frontend && npm run dev
+
+# 前端 — 生产构建
+cd frontend && npm run build
+```
+
+## 技术笔记
+
+- **密码哈希**：直接使用 `bcrypt` 库（`hashpw` / `checkpw`），`passlib` 与新版本 bcrypt（5.x）不兼容
+- **测试数据库隔离**：使用 module 级共享 `sqlite:///:memory:` 引擎 + function 级事务回滚，避免每个测试重复建表
+- **前端 API 代理**：Vite 开发服务器配置 proxy 将 `/api` 转发到 `localhost:8000`，避免跨域问题
