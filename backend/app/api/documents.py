@@ -155,14 +155,18 @@ def extract_questions(
 
         # 使用 LLM 提取题目列表
         client, model = build_client(db)
-        prompt = f"""从以下文档内容中提取所有题目，返回 JSON 数组格式。
-每道题目包含 content（题目正文）。只输出 JSON 数组，不要有其他内容。
+        prompt = f"""从以下文档内容中提取所有题目，返回 JSON 数组格式。只输出 JSON 数组，不要有其他内容。
+
+每道题目包含：
+- content: 题目完整正文
+- type: 题型，choice(选择题)/judgment(判断题)/short_answer(简答题)/programming(编程题)
+- difficulty: 预估难度 1(易)-5(难)
 
 文档内容：
 {text[:8000]}
 
 输出示例：
-[{{"content": "给定一个单链表，请编写函数反转链表。"}}]"""
+[{{"content":"以下哪个是线性数据结构？A. 树 B. 栈 C. 图 D. 堆","type":"choice","difficulty":1}}]"""
 
         response = client.chat.completions.create(
             model=model,
@@ -171,7 +175,6 @@ def extract_questions(
 
         import json, re
         raw = response.choices[0].message.content
-        # 容错解析 JSON 数组
         raw = raw.strip()
         if raw.startswith("```"):
             raw = re.sub(r"^```(?:json)?\s*\n?", "", raw)
@@ -180,12 +183,20 @@ def extract_questions(
 
         # 自动入库
         saved = 0
+        valid_types = {"choice", "judgment", "short_answer", "programming"}
         for q in questions:
             if q.get("content", "").strip():
+                qtype = q.get("type", "short_answer")
+                if qtype not in valid_types:
+                    qtype = "short_answer"
+                difficulty = q.get("difficulty")
+                if difficulty is not None:
+                    difficulty = max(1, min(5, int(difficulty)))
                 question = Question(
                     subject_id=doc_record.subject_id,
                     content=q["content"].strip(),
-                    type="short_answer",
+                    type=qtype,
+                    difficulty=difficulty,
                     source_doc_id=doc_id,
                     created_by=current_user.id,
                 )
