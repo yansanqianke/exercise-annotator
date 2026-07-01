@@ -115,26 +115,35 @@ async function annotateCurrent() {
 }
 
 // ===== 导出 =====
-function doExport(fmt) {
+async function doExport(fmt) {
   const token = localStorage.getItem('access_token')
   const params = new URLSearchParams()
-  params.set('format', fmt)
+  params.set('fmt', fmt)
   if (selectedIds.value.size > 0) params.set('ids', [...selectedIds.value].join(','))
   if (filterSubject.value) params.set('subject_id', filterSubject.value)
 
-  const a = document.createElement('a')
-  a.href = `/api/questions/export?${params.toString()}`
-  // 通过 fetch 下载以携带 Authorization header
-  fetch(a.href, { headers: { 'Authorization': `Bearer ${token}` } })
-    .then(r => r.blob())
-    .then(blob => {
-      const url = URL.createObjectURL(blob)
-      const a2 = document.createElement('a')
-      a2.href = url
-      a2.download = fmt === 'json' ? 'questions.json' : 'questions.csv'
-      a2.click()
-      URL.revokeObjectURL(url)
+  try {
+    const res = await fetch(`/api/questions/export?${params.toString()}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
     })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: '导出失败' }))
+      ElMessage.error(err.detail)
+      return
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `questions.${fmt}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  }
 }
 
 // ===== 批量标注 =====
