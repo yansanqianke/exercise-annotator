@@ -50,3 +50,9 @@ cd frontend && npm run build
 - **Chroma 初始化**：新版本 Chroma 使用 `chromadb.PersistentClient(path=...)`，旧版 `Client(Settings(...))` 已废弃
 - **知识点编码**：自动生成格式 `{学科代码}-KP-{三位序号}`，查询该学科下最大序号后递增
 - **Chroma 同步容错**：知识点 CRUD 时 Chroma 同步用 try/except 包裹，失败不影响数据库操作
+- **LLM 多 provider 适配**：使用 `openai` 库兼容 DeepSeek/OpenAI/Qwen，`base_url` 为空时按 provider 自动设置默认端点
+- **SSE 流式输出**：前端使用原生 `fetch + ReadableStream` 接收，`useSSE.js` 封装为可复用 composable
+- **标注 Prompt 设计**：LLM 返回结构化 JSON（`kp_codes` + `difficulty` + `question_type` + `reasoning`），含 `suggest_kps` 支持建议新知识点
+- **双向知识库驱动**：教师可手动 CRUD 知识点，LLM 标注时也可建议新 KP（教师确认后自动入库），解决冷启动问题
+- **数据库模型预导入**：`main.py` 中需预导入所有模型，确保 uvicorn 启动时 SQLAlchemy 能解析所有 relationship
+- **init_data.py**：初始化脚本创建默认管理员账户（admin/admin123），实际使用请在启动后尽快修改密码

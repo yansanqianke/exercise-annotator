@@ -69,14 +69,68 @@ curl http://localhost:8000/api/kps/1/similar -H "Authorization: Bearer $TOKEN"
 
 前端页面：登录后可访问 `/subjects`（学科管理）和 `/knowledge-points`（知识点管理）。
 
+### P3 · 大模型对话
+
+```bash
+# 管理员创建 LLM 配置（需先登录获取 TOKEN）
+curl -X POST http://localhost:8000/api/llm-configs \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"DeepSeek","provider":"deepseek","model":"deepseek-chat","api_key":"sk-xxx"}'
+
+# 激活配置
+curl -X PUT http://localhost:8000/api/llm-configs/1/activate \
+  -H "Authorization: Bearer $TOKEN"
+
+# SSE 对话（前端 /chat 页面更直观）
+curl -X POST http://localhost:8000/api/agent/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"messages":[{"role":"user","content":"你是谁"}]}'
+```
+
+前端页面：`/admin/llm-config`（管理员配置大模型）和 `/chat`（AI 对话）。
+
+### P4 · 题目标注
+
+前端页面 `/annotate`：
+1. 选择学科 → 输入题目内容 → 点击"开始标注"
+2. 观察流式推理过程
+3. 查看标注结果（题型、难度、知识点编码、推理依据）
+4. 如有建议新知识点，教师可点击"确认入库"
+5. 已标注题目列表中可手动修正
+
+```bash
+# SSE 标注（前端更直观）
+curl -X POST http://localhost:8000/api/agent/annotate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"content":"给定一个单链表，请编写函数反转链表","subject_id":1}'
+```
+
+### P5 · 文档解析
+
+前端页面 `/documents`：
+1. 上传 PDF/Word/PPT/TXT 文档，选择"参考资料"或"题目文档"类型
+2. 参考资料 → 点击"索引"将内容分块写入 Chroma，供标注管道检索
+3. 题目文档 → 点击"提取题目"由 LLM 提取题目列表
+
+```bash
+# 上传文档
+curl -X POST http://localhost:8000/api/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@example.pdf" -F "doc_type=reference" -F "subject_id=1"
+```
+
 ## 运行测试
 
 ```bash
 cd backend && source .venv/bin/activate
-python -m pytest tests/ -v          # 全部 40 个测试
+python -m pytest tests/ -v          # 全部 48 个测试
 python -m pytest tests/ -v -k auth  # 仅认证（17）
 python -m pytest tests/ -v -k subject  # 仅学科（11）
 python -m pytest tests/ -v -k kp    # 仅知识点（12）
+python -m pytest tests/ -v -k llm   # 仅 LLM 配置（8）
 ```
 
 ## 项目文档

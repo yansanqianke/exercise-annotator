@@ -329,12 +329,13 @@ async def get_similar_kps(kp_id: int, top_k: int = 5) -> list:
         ▼
 ⑤ 结果验证 & 持久化
    校验 KP 编码是否存在于数据库
-   写入 questions + question_kp_map
+   ── 存在的编码 → 写入 question_kp_map
+   ── suggest_kps 建议 → 推送给前端，教师确认后自动入库
    记录 system_logs
         │
         ▼
 ⑥ 推送最终结果 & 关闭 SSE
-   推送 "result" 事件（含相似 KP 推荐）
+   推送 "result" 事件（含已有 KP + 建议新 KP）
    推送 "done" 事件，关闭连接
 ```
 
@@ -352,7 +353,10 @@ async def get_similar_kps(kp_id: int, top_k: int = 5) -> list:
 请分析以下题目，完成三项标注任务。
 输出必须是合法 JSON，格式严格如下：
 {
-  "kp_codes": ["DS-KP-XXX", ...],   // 涉及的知识点编码，1-5个
+  "kp_codes": ["DS-KP-XXX", ...],   // 涉及的知识点编码，1-5个，无匹配则 []
+  "suggest_kps": [                  // 建议新增知识点，无建议则 []
+    {"name": "知识点名称", "description": "简要描述"}
+  ],
   "difficulty": 3,                   // 难度 1(易)-5(难)
   "question_type": "programming",    // choice/judgment/short_answer/programming
   "reasoning": "..."                 // 简要说明标注依据
@@ -361,6 +365,22 @@ async def get_similar_kps(kp_id: int, top_k: int = 5) -> list:
 题目内容：
 {question_content}
 ```
+
+### 知识点库双向驱动设计
+
+解决知识点库"冷启动"问题——标注依赖知识库，但知识库可能不完整：
+
+```
+教师手动创建 KP ──────┐
+                      ▼
+                 Chroma 向量库
+                      ▲
+LLM 分析题目 → 建议新 KP（教师确认后入库）
+```
+
+- 标注时 LLM 可在 `suggest_kps` 中建议不存在于候选列表的新知识点
+- 前端展示建议，教师点击"确认入库"后自动创建 KP 并写入 Chroma
+- 下次标注时，新知识点已可用
 
 ### 文档解析两种场景
 
