@@ -22,6 +22,18 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/subjects',
+    name: 'Subjects',
+    component: () => import('../views/subjects/SubjectList.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/knowledge-points',
+    name: 'KnowledgePoints',
+    component: () => import('../views/kps/KPList.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     // 未匹配路由重定向到首页
     path: '/:pathMatch(.*)*',
     redirect: '/',

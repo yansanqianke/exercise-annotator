@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     # SQLite
     SQLITE_PATH: str = "data/app.db"
+    CHROMA_PATH: str = "data/chroma"
 
     # 大模型（开发阶段默认值，后续通过配置页管理）
     LLM_PROVIDER: str = "deepseek"

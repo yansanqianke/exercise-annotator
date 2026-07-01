@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.kps import router as kps_router
+from app.api.subjects import router as subjects_router
 from app.core.config import settings
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
@@ -19,6 +21,8 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(auth_router)
+app.include_router(subjects_router)
+app.include_router(kps_router)
 
 
 @app.get("/health")

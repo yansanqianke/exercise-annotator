@@ -13,6 +13,7 @@
 - **Python 环境管理**：使用 `uv` 管理 Python 依赖和虚拟环境
 - **全局环境命令**：任何影响全局环境（安装系统包、修改全局 Python 等）的命令，需先获得用户允许
 - **适时提交**：在合适的时机（阶段完成、功能就绪）主动进行 Git 提交
+- **定期审视**：在合适的时机检查项目结构，对照 plan.md 确保没有偏离方向
 
 ## 开发命令
 
@@ -46,3 +47,6 @@ cd frontend && npm run build
 - **密码哈希**：直接使用 `bcrypt` 库（`hashpw` / `checkpw`），`passlib` 与新版本 bcrypt（5.x）不兼容
 - **测试数据库隔离**：使用 module 级共享 `sqlite:///:memory:` 引擎 + function 级事务回滚，避免每个测试重复建表
 - **前端 API 代理**：Vite 开发服务器配置 proxy 将 `/api` 转发到 `localhost:8000`，避免跨域问题
+- **Chroma 初始化**：新版本 Chroma 使用 `chromadb.PersistentClient(path=...)`，旧版 `Client(Settings(...))` 已废弃
+- **知识点编码**：自动生成格式 `{学科代码}-KP-{三位序号}`，查询该学科下最大序号后递增
+- **Chroma 同步容错**：知识点 CRUD 时 Chroma 同步用 try/except 包裹，失败不影响数据库操作

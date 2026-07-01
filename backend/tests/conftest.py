@@ -18,6 +18,14 @@ from app.models.document import Document  # noqa: F401
 from app.models.config import Agent, LLMConfig, SystemLog  # noqa: F401
 
 
+import tempfile
+
+from app.core.config import settings
+
+# 测试用临时 Chroma 目录
+_temp_chroma_dir = tempfile.mkdtemp(prefix="test_chroma_")
+settings.CHROMA_PATH = _temp_chroma_dir
+
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
 # 模块级共享引擎 — 确保整个测试模块使用同一个内存数据库
