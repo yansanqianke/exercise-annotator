@@ -1,88 +1,76 @@
-<!-- 首页 Dashboard -->
+<!-- 首页 — 统计概览 -->
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { useRouter } from 'vue-router'
 import { getSubjectsApi } from '../api/subject'
 import { getKPsApi } from '../api/kp'
 import { getQuestionsApi } from '../api/question'
 
 const authStore = useAuthStore()
-const router = useRouter()
-
-/** 统计数据 */
-const stats = ref({ subjects: 0, kps: 0, questions: 0 })
+const stats = ref({ subjects: 0, kps: 0, questions: 0, annotated: 0 })
 
 async function loadStats() {
   try {
     const [subjects, kps, questions] = await Promise.all([
-      getSubjectsApi(),
-      getKPsApi(),
-      getQuestionsApi({}),
+      getSubjectsApi(), getKPsApi(), getQuestionsApi({}),
     ])
     stats.value = {
-      subjects: subjects.length,
-      kps: kps.length,
+      subjects: subjects.length, kps: kps.length,
       questions: questions.length,
+      annotated: questions.filter(q => q.kp_maps?.length).length,
     }
   } catch { /* */ }
 }
 
-function handleLogout() {
-  authStore.logout()
-  router.push('/login')
-}
+const cards = [
+  { key: 'subjects', label: '学科', color: '#5a7d8c' },
+  { key: 'kps', label: '知识点', color: '#c4872b' },
+  { key: 'questions', label: '题库', color: '#2c3e6b' },
+  { key: 'annotated', label: '已标注', color: '#5b8c5a' },
+]
 
 onMounted(loadStats)
 </script>
 
 <template>
   <div class="dashboard">
-    <div class="header">
-      <h1>习题知识点标注智能体</h1>
-      <div>
-        <span style="margin-right: 16px">
-          {{ authStore.user?.username }}（{{ authStore.user?.role === 'admin' ? '管理员' : '教师' }}）
-        </span>
-        <el-button type="danger" size="small" @click="handleLogout">退出登录</el-button>
+    <h1 class="welcome">
+      欢迎回来，<span class="name">{{ authStore.user?.username }}</span>
+    </h1>
+    <p class="subtitle">习题知识点标注智能体</p>
+
+    <div class="stats-grid">
+      <div v-for="c in cards" :key="c.key" class="stat-card">
+        <div class="stat-num" :style="{ color: c.color }">{{ stats[c.key] }}</div>
+        <div class="stat-label">{{ c.label }}</div>
       </div>
     </div>
-
-    <!-- 统计卡片 -->
-    <div class="stats-row">
-      <el-card class="stat-card"><div class="stat-num">{{ stats.subjects }}</div><div class="stat-label">学科数</div></el-card>
-      <el-card class="stat-card"><div class="stat-num">{{ stats.kps }}</div><div class="stat-label">知识点</div></el-card>
-      <el-card class="stat-card"><div class="stat-num">{{ stats.questions }}</div><div class="stat-label">已标注题目</div></el-card>
-    </div>
-
-    <h3>功能导航</h3>
-    <div class="nav-cards">
-      <el-card><router-link to="/subjects">学科管理</router-link></el-card>
-      <el-card><router-link to="/knowledge-points">知识点管理</router-link></el-card>
-      <el-card><router-link to="/annotate">题目标注</router-link></el-card>
-      <el-card><router-link to="/documents">文档管理</router-link></el-card>
-      <el-card><router-link to="/chat">AI 对话</router-link></el-card>
-    </div>
-
-    <template v-if="authStore.isAdmin">
-      <h3 style="margin-top: 24px">系统管理</h3>
-      <div class="nav-cards">
-        <el-card><router-link to="/admin/users">用户管理</router-link></el-card>
-        <el-card><router-link to="/admin/llm-config">大模型配置</router-link></el-card>
-        <el-card><router-link to="/admin/agents">智能体管理</router-link></el-card>
-        <el-card><router-link to="/admin/logs">系统日志</router-link></el-card>
-      </div>
-    </template>
   </div>
 </template>
 
 <style scoped>
-.dashboard { padding: 24px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
-.stat-card { flex: 1; text-align: center; }
-.stat-num { font-size: 32px; font-weight: bold; color: #409eff; }
-.stat-label { font-size: 14px; color: #999; margin-top: 4px; }
-.nav-cards { display: flex; gap: 16px; flex-wrap: wrap; }
-.nav-cards .el-card { width: 200px; text-align: center; font-size: 16px; }
+.dashboard {
+  padding: var(--space-2xl);
+  max-width: 800px;
+}
+.welcome { font-size: 28px; margin-bottom: 4px; }
+.welcome .name { color: var(--color-accent); }
+.subtitle { color: var(--color-text-muted); margin-bottom: var(--space-xl); font-size: 15px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  text-align: center;
+  transition: box-shadow .2s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md); }
+.stat-num { font-size: 40px; font-weight: 700; font-family: var(--font-heading); line-height: 1.1; }
+.stat-label { font-size: 13px; color: var(--color-text-muted); margin-top: 4px; }
 </style>

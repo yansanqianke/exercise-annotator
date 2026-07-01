@@ -67,7 +67,7 @@ function clearChat() {
 <template>
   <div class="chat-page">
     <div class="chat-header">
-      <h2>AI 对话</h2>
+      
       <el-button @click="clearChat" :disabled="isStreaming">清空对话</el-button>
     </div>
 

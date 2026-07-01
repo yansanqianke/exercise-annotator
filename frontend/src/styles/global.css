@@ -1,0 +1,103 @@
+/* ===== 全局基础样式 ===== */
+@import './variables.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+a { color: var(--color-primary); text-decoration: none; }
+
+/* ===== Element Plus 主题覆盖 ===== */
+
+/* 主色 */
+.el-button--primary {
+  --el-button-bg-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+  --el-button-hover-bg-color: var(--color-primary-light);
+  --el-button-hover-border-color: var(--color-primary-light);
+}
+.el-button--primary.is-plain {
+  --el-button-text-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+}
+
+/* 卡片 */
+.el-card {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: box-shadow .2s;
+}
+.el-card:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* 表格 */
+.el-table {
+  --el-table-border-color: var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+.el-table th.el-table__cell {
+  background: var(--color-bg);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+/* 输入框 */
+.el-input__wrapper, .el-textarea__inner {
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+}
+.el-input__wrapper:hover, .el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--color-border) !important;
+}
+
+/* 下拉菜单 */
+.el-select .el-input__wrapper {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* 标签 */
+.el-tag {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+.el-tag--success {
+  --el-tag-bg-color: #e8f0e8;
+  --el-tag-text-color: var(--color-success);
+}
+.el-tag--warning {
+  --el-tag-bg-color: #faf0e0;
+  --el-tag-text-color: var(--color-warning);
+}
+
+/* 对话框 */
+.el-dialog {
+  border-radius: var(--radius-lg) !important;
+}
+.el-dialog__header {
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+/* 消息提示 */
+.el-message {
+  border-radius: var(--radius-md) !important;
+}

@@ -25,7 +25,7 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <h2>用户管理</h2>
+    
     <el-table :data="users" border>
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="username" label="用户名" width="120" />

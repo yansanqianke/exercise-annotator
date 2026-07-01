@@ -109,7 +109,7 @@ onMounted(() => {
 <template>
   <div class="kp-list">
     <div class="header">
-      <h2>知识点管理</h2>
+      
       <div class="header-actions">
         <el-select
           v-model="selectedSubject"

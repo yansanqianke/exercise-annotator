@@ -18,7 +18,7 @@ onMounted(load)
 <template>
   <div class="page">
     <div class="header">
-      <h2>系统日志</h2>
+      
       <el-select v-model="filter.action" placeholder="按动作过滤" clearable @change="load" style="width:180px">
         <el-option label="标注" value="annotate" />
         <el-option label="对话" value="chat" />

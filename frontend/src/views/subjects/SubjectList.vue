@@ -76,7 +76,7 @@ onMounted(loadSubjects)
 <template>
   <div class="subject-list">
     <div class="header">
-      <h2>学科管理</h2>
+      
       <el-button type="primary" @click="openCreate">创建学科</el-button>
     </div>
 

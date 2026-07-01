@@ -71,7 +71,7 @@ onMounted(loadConfigs)
 <template>
   <div class="llm-config">
     <div class="header">
-      <h2>大模型配置</h2>
+      
       <el-button type="primary" @click="openCreate">创建配置</el-button>
     </div>
 

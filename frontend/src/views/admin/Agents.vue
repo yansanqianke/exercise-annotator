@@ -39,7 +39,7 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <div class="header"><h2>智能体管理</h2><el-button type="primary" @click="openCreate">创建智能体</el-button></div>
+    <div class="header"><el-button type="primary" @click="openCreate">创建智能体</el-button></div>
     <el-table :data="agents" border>
       <el-table-column prop="name" label="名称" width="160" />
       <el-table-column prop="description" label="描述" show-overflow-tooltip />

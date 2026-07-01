@@ -74,7 +74,7 @@ onMounted(() => {
 <template>
   <div class="doc-page">
     <div class="header">
-      <h2>文档管理</h2>
+      
       <div class="header-actions">
         <el-select v-model="selectedSubject" placeholder="按学科筛选" clearable style="width: 200px" @change="onSubjectChange">
           <el-option v-for="s in subjects" :key="s.id" :label="s.name" :value="s.id" />
