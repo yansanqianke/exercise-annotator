@@ -114,6 +114,29 @@ async function annotateCurrent() {
   }
 }
 
+// ===== 导出 =====
+function doExport(fmt) {
+  const token = localStorage.getItem('access_token')
+  const params = new URLSearchParams()
+  params.set('format', fmt)
+  if (selectedIds.value.size > 0) params.set('ids', [...selectedIds.value].join(','))
+  if (filterSubject.value) params.set('subject_id', filterSubject.value)
+
+  const a = document.createElement('a')
+  a.href = `/api/questions/export?${params.toString()}`
+  // 通过 fetch 下载以携带 Authorization header
+  fetch(a.href, { headers: { 'Authorization': `Bearer ${token}` } })
+    .then(r => r.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob)
+      const a2 = document.createElement('a')
+      a2.href = url
+      a2.download = fmt === 'json' ? 'questions.json' : 'questions.csv'
+      a2.click()
+      URL.revokeObjectURL(url)
+    })
+}
+
 // ===== 批量标注 =====
 async function batchAnnotate() {
   if (selectedIds.value.size === 0) { ElMessage.warning('请先选择题目'); return }
@@ -215,6 +238,15 @@ onMounted(async () => {
       <div class="toolbar-actions">
         <el-button :disabled="selectedIds.size === 0" @click="batchAnnotate">批量标注 ({{ selectedIds.size }})</el-button>
         <el-button :disabled="selectedIds.size === 0" type="danger" plain @click="batchDelete">批量删除</el-button>
+        <el-dropdown @command="doExport" style="margin-left:8px">
+          <el-button>导出 <el-icon style="margin-left:4px"><arrow-down /></el-icon></el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="csv">导出 CSV</el-dropdown-item>
+              <el-dropdown-item command="json">导出 JSON</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
 
