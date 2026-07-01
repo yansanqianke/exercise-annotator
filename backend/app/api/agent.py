@@ -23,9 +23,9 @@ class ChatRequest(BaseModel):
 
 class AnnotateRequest(BaseModel):
     """题目标注请求体"""
-    content: str = Field(min_length=1, description="题目正文")
+    content: str | None = Field(default=None, description="题目正文（不传 question_id 时必填）")
     subject_id: int = Field(description="所属学科 ID")
-    type_hint: str | None = Field(default=None, description="题型提示（可选）")
+    question_id: int | None = Field(default=None, description="已有题目 ID，传入则重新标注该题目")
 
 
 def _sse_event(event_type: str, data: str) -> str:
@@ -64,11 +64,15 @@ async def annotate(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """题目标注 — SSE 流式返回推理过程 + 最终结果"""
+    """题目标注 — SSE 流式返回推理过程 + 最终结果
+    传 question_id 则重新标注已有题目，否则输入 content 创建新题目并标注
+    """
 
     async def event_generator():
         try:
-            for event_json in annotate_stream(db, body.content, body.subject_id, current_user.id):
+            for event_json in annotate_stream(
+                db, body.content, body.subject_id, current_user.id, body.question_id,
+            ):
                 yield f"data: {event_json}\n\n"
         except ValueError as e:
             yield _sse_event("error", str(e))

@@ -306,9 +306,18 @@ async def get_similar_kps(kp_id: int, top_k: int = 5) -> list:
 
 ### RAG 标注管道（完整流程）
 
+题目导入与知识点解析解耦：
+
+- **题目导入**：手动输入或文档提取的题目先入库（`POST /api/questions`）
+- **知识点解析**：对题库中已有题目执行标注（`POST /api/agent/annotate`），可传入 `question_id` 重新标注已有题目
+
+标注管道流程：
+
 ```
-① 接收题目输入
-   POST body: { content, subject_id, type_hint? }
+① 接收标注请求
+   POST body: { content?, subject_id, question_id? }
+   ── question_id 传入 → 读取已有题目 → 覆盖标注结果
+   ── content 传入 → 创建新题并标注
    SSE 连接建立，开始推送事件
         │
         ▼

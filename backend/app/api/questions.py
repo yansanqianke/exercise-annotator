@@ -8,9 +8,17 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.question import Question, QuestionKPMap
 from app.models.knowledge_point import KnowledgePoint
+from pydantic import BaseModel, Field
+
 from app.schemas.question import KPAssignment, QuestionResponse
 
 router = APIRouter(prefix="/api/questions", tags=["题目管理"])
+
+
+class QuestionCreate(BaseModel):
+    """创建题目请求（不含标注）"""
+    content: str = Field(min_length=1, description="题目正文")
+    subject_id: int = Field(description="所属学科 ID")
 
 
 def _enrich_kp_maps(question: Question) -> Question:
@@ -40,6 +48,25 @@ def list_questions(
         query = query.filter(Question.difficulty == difficulty)
 
     return query.order_by(Question.id.desc()).all()
+
+
+@router.post("", response_model=QuestionResponse, status_code=status.HTTP_201_CREATED)
+def create_question(
+    body: QuestionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """创建题目（仅保存到题库，不触发标注）"""
+    question = Question(
+        subject_id=body.subject_id,
+        content=body.content,
+        type="short_answer",
+        created_by=current_user.id,
+    )
+    db.add(question)
+    db.commit()
+    db.refresh(question)
+    return question
 
 
 @router.get("/{question_id}", response_model=QuestionResponse)

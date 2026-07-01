@@ -54,5 +54,7 @@ cd frontend && npm run build
 - **SSE 流式输出**：前端使用原生 `fetch + ReadableStream` 接收，`useSSE.js` 封装为可复用 composable
 - **标注 Prompt 设计**：LLM 返回结构化 JSON（`kp_codes` + `difficulty` + `question_type` + `reasoning`），含 `suggest_kps` 支持建议新知识点
 - **双向知识库驱动**：教师可手动 CRUD 知识点，LLM 标注时也可建议新 KP（教师确认后自动入库），解决冷启动问题
+- **标注模块分离**：题目导入与知识点解析解耦——题目可先入库后标注，已标注题目可重新标注
+- **标注接口复用**：`POST /api/agent/annotate` 支持可选 `question_id`，传入则重新标注已有题目并覆盖结果
 - **数据库模型预导入**：`main.py` 中需预导入所有模型，确保 uvicorn 启动时 SQLAlchemy 能解析所有 relationship
 - **init_data.py**：初始化脚本创建默认管理员账户（admin/admin123），实际使用请在启动后尽快修改密码

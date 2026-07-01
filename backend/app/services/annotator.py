@@ -96,12 +96,27 @@ def _validate_kp_codes(kp_codes: list[str], subject_id: int, db: Session) -> lis
     return valid
 
 
-def annotate_stream(db: Session, content: str, subject_id: int, user_id: int):
+def annotate_stream(db: Session, content: str | None, subject_id: int, user_id: int, question_id: int | None = None):
     """
-    标注管道 — 生成器逐块返回文本
+    标注管道 — 生成器逐块返回 JSON 事件
 
     流程：检索候选 KP → 构造 Prompt → LLM 流式推理 → 解析 JSON → 持久化
+
+    question_id 传入时：重新标注已有题目（覆盖题型/难度/KP）
+    content 传入时：创建新题目并标注
     """
+    # 确定标注的题目内容
+    if question_id is not None:
+        question = db.query(Question).filter(Question.id == question_id).first()
+        if not question:
+            yield json.dumps({"type": "error", "content": "题目不存在"})
+            return
+        content = question.content
+        subject_id = question.subject_id
+    elif not content:
+        yield json.dumps({"type": "error", "content": "请提供题目内容或题目 ID"})
+        return
+
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         yield json.dumps({"type": "error", "content": "学科不存在"})
@@ -117,9 +132,8 @@ def annotate_stream(db: Session, content: str, subject_id: int, user_id: int):
     # 获取完整知识点列表作为 Prompt 候选
     kp_list_text = _get_kp_list_text(subject_id, db)
 
-    # 参考资料检索（目前可能为空，P5 文档上传后可用）
+    # 参考资料检索
     ref_context = "（暂无参考资料）"
-    # TODO P5: 从 ref_materials 检索参考段落
 
     # ② 构造 Prompt
     yield json.dumps({"type": "thinking", "content": "正在调用大模型进行标注推理..."})
@@ -161,17 +175,25 @@ def annotate_stream(db: Session, content: str, subject_id: int, user_id: int):
     # 校验知识点编码
     valid_kps = _validate_kp_codes(kp_codes, subject_id, db)
 
-    # ⑤ 持久化题目
-    question = Question(
-        subject_id=subject_id,
-        content=content,
-        type=question_type,
-        difficulty=difficulty,
-        created_by=user_id,
-    )
-    db.add(question)
-    db.commit()
-    db.refresh(question)
+    # ⑤ 持久化 — 创建新题或更新已有题
+    if question_id is None:
+        question = Question(
+            subject_id=subject_id,
+            content=content,
+            type=question_type,
+            difficulty=difficulty,
+            created_by=user_id,
+        )
+        db.add(question)
+        db.commit()
+        db.refresh(question)
+    else:
+        question.type = question_type
+        question.difficulty = difficulty
+        # 清除旧 KP 关联
+        db.query(QuestionKPMap).filter(QuestionKPMap.question_id == question.id).delete()
+        db.commit()
+        db.refresh(question)
 
     for kp in valid_kps:
         kp_map = QuestionKPMap(
@@ -187,7 +209,7 @@ def annotate_stream(db: Session, content: str, subject_id: int, user_id: int):
         "type": "result",
         "question_id": question.id,
         "kp_codes": [kp.code for kp in valid_kps],
-        "suggest_kps": suggest_kps,  # 新知识点建议
+        "suggest_kps": suggest_kps,
         "difficulty": difficulty,
         "question_type": question_type,
         "reasoning": reasoning,
