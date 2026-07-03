@@ -9,7 +9,7 @@ const inputText = ref('')
 const chatContainer = ref(null)
 const inputRef = ref(null)
 
-/** 发送消息 — 直连后端，最小化处理链路 */
+/** 发送消息 */
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
@@ -28,6 +28,7 @@ async function sendMessage() {
   abortCtrl = new AbortController()
 
   try {
+    // 先收集完整回复
     const res = await fetch('http://localhost:8000/api/agent/chat', {
       method: 'POST',
       headers: {
@@ -41,29 +42,28 @@ async function sendMessage() {
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
+    let fullText = ''
     let buf = ''
+
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
       buf += decoder.decode(value, { stream: true })
-      // 按 \n\n 拆分 SSE 事件
       const parts = buf.split('\n\n')
       buf = parts.pop() || ''
       for (const p of parts) {
         if (!p.startsWith('data: ')) continue
         try {
           const evt = JSON.parse(p.slice(6))
-          if (evt.type === 'thinking') {
-            assistantMsg.content += evt.content
-            // 调试：每 250ms 输出一个字符
-            await new Promise(r => setTimeout(r, 0))
-          }
-          else if (evt.type === 'done') assistantMsg.isStreaming = false
-          else if (evt.type === 'error') assistantMsg.content = evt.content
+          if (evt.type === 'thinking') fullText += evt.content
+          else if (evt.type === 'error') throw new Error(evt.content)
         } catch {}
       }
-      scrollToBottom()
     }
+
+    // 逐字动画显示
+    if (fullText) await typewriter(assistantMsg, fullText)
+    assistantMsg.isStreaming = false
   } catch (e) {
     if (e.name !== 'AbortError') assistantMsg.content = e.message
   } finally {
@@ -72,12 +72,42 @@ async function sendMessage() {
   }
 }
 
+let stopTyping = false
+let typeTimer = null
+
+/** 打字机动画 — 逐字显示文字 */
+function typewriter(msgObj, fullText, speed = 30) {
+  return new Promise((resolve) => {
+    let i = 0
+    stopTyping = false
+    typeTimer = setInterval(() => {
+      if (stopTyping) {
+        clearInterval(typeTimer)
+        msgObj.content = fullText  // 立即显示剩余内容
+        resolve()
+        return
+      }
+      if (i >= fullText.length) {
+        clearInterval(typeTimer)
+        resolve()
+        return
+      }
+      const take = fullText.charCodeAt(i) > 127 ? 1 : 2
+      msgObj.content = fullText.slice(0, i + take)
+      i += take
+      scrollToBottom()
+    }, speed)
+  })
+}
+
 function stopGeneration() {
+  stopTyping = true
+  if (typeTimer) clearInterval(typeTimer)
   abortCtrl?.abort()
   const last = messages.value[messages.value.length - 1]
   if (last?.isStreaming) {
     last.isStreaming = false
-    if (!last.content) last.content = '（已停止生成）'
+    if (!last.content) last.content = '（已停止）'
   }
 }
 
