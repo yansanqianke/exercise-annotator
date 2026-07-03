@@ -61,9 +61,10 @@ async function sendMessage() {
       }
     }
 
-    // 逐字动画显示
-    if (fullText) await typewriter(assistantMsg, fullText)
-    assistantMsg.isStreaming = false
+    // 逐字动画显示 — 用 messages 中的响应式对象
+    const msgRef = messages.value[messages.value.length - 1]
+    if (fullText) await typewriter(msgRef, fullText)
+    msgRef.isStreaming = false
   } catch (e) {
     if (e.name !== 'AbortError') assistantMsg.content = e.message
   } finally {
