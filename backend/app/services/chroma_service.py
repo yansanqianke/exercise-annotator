@@ -95,3 +95,29 @@ def query_similar_kps(query_text: str, subject_id: int | None = None, top_k: int
             "distance": results["distances"][0][i] if results.get("distances") else None,
         })
     return kp_list
+
+
+def query_ref_materials(query_text: str, subject_id: int | None = None, top_k: int = 3) -> list[dict]:
+    """从参考资料向量库检索相关段落"""
+    _ensure_init()
+    where_filter = None
+    if subject_id is not None:
+        where_filter = {"subject_id": subject_id}
+
+    results = ref_materials.query(
+        query_texts=[query_text],
+        n_results=top_k,
+        where=where_filter,
+    )
+
+    if not results["documents"] or not results["documents"][0]:
+        return []
+
+    chunks = []
+    for i, doc in enumerate(results["documents"][0]):
+        chunks.append({
+            "content": doc,
+            "doc_id": results["metadatas"][0][i].get("doc_id") if results.get("metadatas") else None,
+            "distance": results["distances"][0][i] if results.get("distances") else None,
+        })
+    return chunks

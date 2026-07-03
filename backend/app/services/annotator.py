@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.subject import Subject
 from app.models.knowledge_point import KnowledgePoint
 from app.models.question import Question, QuestionKPMap
-from app.services.chroma_service import query_similar_kps
+from app.services.chroma_service import query_ref_materials, query_similar_kps
 from app.services.llm import build_client
 
 
@@ -134,7 +134,13 @@ def annotate_stream(db: Session, content: str | None, subject_id: int, user_id: 
     kp_list_text = _get_kp_list_text(subject_id, db)
 
     # 参考资料检索
-    ref_context = "（暂无参考资料）"
+    ref_chunks = query_ref_materials(content, subject_id=subject_id, top_k=3)
+    if ref_chunks:
+        ref_context = "\n\n---\n\n".join(
+            f"[参考段落 {i+1}]: {c['content'][:500]}" for i, c in enumerate(ref_chunks)
+        )
+    else:
+        ref_context = "（暂无参考资料）"
 
     # ② 构造 Prompt
     yield json.dumps({"type": "thinking", "content": "正在调用大模型进行标注推理..."})
