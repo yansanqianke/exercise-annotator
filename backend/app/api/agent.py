@@ -13,7 +13,7 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.config import SystemLog
 from app.services.annotator import annotate_stream
-from app.services.llm import chat_stream
+from app.services.llm import chat_stream, estimate_tokens
 
 router = APIRouter(prefix="/api/agent", tags=["智能体调用"])
 
@@ -69,8 +69,9 @@ async def chat(
         start = time.time()
         error = None
         total_text = ""
+        usage = {}
         try:
-            for text_chunk in chat_stream(db, body.messages):
+            for text_chunk in chat_stream(db, body.messages, usage_container=usage):
                 total_text += text_chunk
                 yield _sse_event("thinking", text_chunk)
             yield _sse_event("done", "对话完成")
@@ -83,7 +84,7 @@ async def chat(
         finally:
             summary = body.messages[-1]["content"][:200] if body.messages else ""
             latency = int((time.time() - start) * 1000)
-            tokens = len(total_text) // 2  # 粗略估算：中文约 2 字符/token
+            tokens = usage.get("total", estimate_tokens(total_text))
             _write_log(current_user.id, "chat", summary, "error" if error else "success",
                        latency_ms=latency, tokens_used=tokens)
 
@@ -123,7 +124,7 @@ async def annotate(
         finally:
             summary = (body.content or f"重新标注题目#{body.question_id}")[:200]
             latency = int((time.time() - start) * 1000)
-            tokens = len(total_text) // 2
+            tokens = estimate_tokens(total_text)
             _write_log(current_user.id, "annotate", summary, "error" if error else "success",
                        latency_ms=latency, tokens_used=tokens)
 
