@@ -80,10 +80,10 @@ function typewriter(msgObj, fullText, speed = 30) {
   return new Promise((resolve) => {
     let i = 0
     stopTyping = false
-    typeTimer = setInterval(() => {
+    typeTimer = setInterval(async () => {
       if (stopTyping) {
         clearInterval(typeTimer)
-        msgObj.content = fullText  // 立即显示剩余内容
+        msgObj.content = fullText
         resolve()
         return
       }
@@ -95,6 +95,7 @@ function typewriter(msgObj, fullText, speed = 30) {
       const take = fullText.charCodeAt(i) > 127 ? 1 : 2
       msgObj.content = fullText.slice(0, i + take)
       i += take
+      await nextTick()  // 强制 Vue 重绘
       scrollToBottom()
     }, speed)
   })
