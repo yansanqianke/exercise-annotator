@@ -18,8 +18,10 @@ from app.services.llm import chat_stream
 router = APIRouter(prefix="/api/agent", tags=["智能体调用"])
 
 
-def _write_log(db: Session, user_id: int, action: str, input_summary: str, status: str = "success"):
-    """写入系统日志"""
+def _write_log(user_id: int, action: str, input_summary: str, status: str = "success"):
+    """写入系统日志（独立 session，避免 SSE 流结束后原 session 已关闭）"""
+    from app.core.database import SessionLocal
+    db = SessionLocal()
     try:
         log = SystemLog(
             user_id=user_id,
@@ -31,6 +33,8 @@ def _write_log(db: Session, user_id: int, action: str, input_summary: str, statu
         db.commit()
     except Exception:
         pass  # 日志写入失败不影响主流程
+    finally:
+        db.close()
 
 
 class ChatRequest(BaseModel):
@@ -73,7 +77,7 @@ async def chat(
             yield _sse_event("error", error)
         finally:
             summary = body.messages[-1]["content"][:200] if body.messages else ""
-            _write_log(db, current_user.id, "chat", summary, "error" if error else "success")
+            _write_log(current_user.id, "chat", summary, "error" if error else "success")
 
     return StreamingResponse(
         event_generator(),
@@ -107,7 +111,7 @@ async def annotate(
             yield _sse_event("error", error)
         finally:
             summary = (body.content or f"重新标注题目#{body.question_id}")[:200]
-            _write_log(db, current_user.id, "annotate", summary, "error" if error else "success")
+            _write_log(current_user.id, "annotate", summary, "error" if error else "success")
 
     return StreamingResponse(
         event_generator(),
