@@ -2,14 +2,13 @@
 <script setup>
 import { ref, nextTick, watch, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useSSE } from '../../composables/useSSE'
 
-const { isStreaming, start, abort } = useSSE()
-
+const isStreaming = ref(false)
 const messages = ref([])
 const inputText = ref('')
 const chatContainer = ref(null)
 const inputRef = ref(null)
+let abortController = null
 
 // ===== 逐字动画引擎 =====
 const textQueue = ref([])       // 待渲染的字符队列
@@ -62,7 +61,7 @@ function enqueueText(text) {
   textQueue.value.push(...text.split(''))
 }
 
-// ===== 发送消息 =====
+// ===== 发送消息（直连后端，不经过代理） =====
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
@@ -79,22 +78,61 @@ async function sendMessage() {
   messages.value.push(assistantMsg)
   startAnimator(assistantMsg)
 
-  await start('/api/agent/chat', { messages: apiMessages }, {
-    onThinking(chunk) {
-      enqueueText(chunk)
-    },
-    onDone() {
-      // 不主动停止，让动画器在队列清空后自己结束
-    },
-    onError(msg) {
+  isStreaming.value = true
+  const token = localStorage.getItem('access_token')
+  abortController = new AbortController()
+
+  try {
+    const url = import.meta.env.DEV
+      ? 'http://localhost:8000/api/agent/chat'
+      : '/api/agent/chat'
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ messages: apiMessages }),
+      signal: abortController.signal,
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || `HTTP ${res.status}`)
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        try {
+          const event = JSON.parse(line.slice(6))
+          if (event.type === 'thinking') enqueueText(event.content)
+          else if (event.type === 'error') throw new Error(event.content)
+        } catch (e) {
+          if (e.message && !e.message.startsWith('Unexpected')) throw e
+        }
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
       stopAnimator()
-      assistantMsg.content = msg
-    },
-  })
+      assistantMsg.content = e.message
+    }
+  } finally {
+    isStreaming.value = false
+  }
 }
 
 function stopGeneration() {
-  abort()
+  abortController?.abort()
   stopAnimator()
   const last = messages.value[messages.value.length - 1]
   if (last && !last.content) last.content = '（已停止生成）'
