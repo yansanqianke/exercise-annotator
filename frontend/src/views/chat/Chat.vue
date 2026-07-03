@@ -11,12 +11,19 @@ const chatContainer = ref(null)
 const inputRef = ref(null)
 let flushTimer = null
 
-/** 启动逐字动画 — 每次只从缓冲区取少量字符，模拟打字效果 */
+/** 启动逐字动画 — 每次只取少量字符，关闭时不立即清空 */
 function startFlush(msgObj) {
   let pending = ''
+  let stopped = false
+
   const timer = setInterval(() => {
-    if (pending.length === 0) return
-    // 每次取 1-3 个字符（英文多取，中文少取）
+    if (pending.length === 0) {
+      if (stopped) {
+        clearInterval(timer)
+        scrollToBottom()
+      }
+      return
+    }
     const take = Math.min(pending.length, 3)
     msgObj.content += pending.slice(0, take)
     pending = pending.slice(take)
@@ -25,9 +32,13 @@ function startFlush(msgObj) {
 
   return {
     feed(text) { pending += text },
-    stop() {
+    /** 正常结束：标记停止，定时器自行耗完 */
+    stop() { stopped = true },
+    /** 异常中断：立即清空缓冲并停止 */
+    abort() {
+      stopped = true
+      pending = ''
       clearInterval(timer)
-      if (pending) { msgObj.content += pending; pending = ''; scrollToBottom() }
     },
   }
 }
@@ -56,7 +67,7 @@ async function sendMessage() {
       assistantMsg.isStreaming = false
     },
     onError(msg) {
-      flush.stop()
+      flush.abort()
       assistantMsg.content = msg
       assistantMsg.isStreaming = false
     },
