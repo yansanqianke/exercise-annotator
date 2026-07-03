@@ -40,6 +40,17 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await updateMeApi(data)
   }
 
+  /** 初始化 — 若已有 token 则拉取用户信息（用于刷新后恢复状态） */
+  async function init() {
+    if (token.value && !user.value) {
+      try {
+        await fetchUser()
+      } catch {
+        logout()
+      }
+    }
+  }
+
   /** 退出登录 */
   function logout() {
     token.value = ''
@@ -47,5 +58,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('access_token')
   }
 
-  return { user, token, isLoggedIn, isAdmin, login, register, fetchUser, updateProfile, logout }
+  return { user, token, isLoggedIn, isAdmin, login, register, fetchUser, updateProfile, logout, init }
 })

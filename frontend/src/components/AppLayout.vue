@@ -1,12 +1,13 @@
 <!-- 全局布局：顶栏 + 侧边栏 + 主内容区 -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+authStore.init()
 const sidebarCollapsed = ref(false)
 
 /** 侧边栏菜单 */
