@@ -97,6 +97,21 @@ python -m pytest tests/ -v -k kp   # 知识点
 
 ---
 
+## Docker 部署
+
+```bash
+# 构建并启动
+docker compose up -d --build
+
+# 首次初始化数据
+docker compose exec backend python init_data.py
+
+# 访问
+# http://localhost
+```
+
+两个容器：前端 Nginx (80) + 后端 FastAPI (8000)。数据通过 volume `./data` 持久化。
+
 ## 项目结构
 
 ```

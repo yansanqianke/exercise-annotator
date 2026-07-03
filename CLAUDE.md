@@ -40,6 +40,10 @@ cd frontend && npm run dev
 
 # 前端 — 生产构建
 cd frontend && npm run build
+
+# Docker 部署
+docker compose up -d --build
+docker compose exec backend python init_data.py
 ```
 
 ## 技术笔记
@@ -58,3 +62,4 @@ cd frontend && npm run build
 - **标注接口复用**：`POST /api/agent/annotate` 支持可选 `question_id`，传入则重新标注已有题目并覆盖结果
 - **数据库模型预导入**：`main.py` 中需预导入所有模型，确保 uvicorn 启动时 SQLAlchemy 能解析所有 relationship
 - **init_data.py**：初始化脚本创建默认管理员账户（admin/admin123），实际使用请在启动后尽快修改密码
+- **Docker 双容器部署**：前端 Nginx（80）托管静态文件 + 代理 /api 到后端；后端 FastAPI（8000）处理业务逻辑；数据通过 volume 挂载 `./data` 持久化
