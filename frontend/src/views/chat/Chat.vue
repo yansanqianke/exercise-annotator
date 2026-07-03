@@ -1,6 +1,6 @@
 <!-- AI 对话 — 流式气泡界面 -->
 <script setup>
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useSSE } from '../../composables/useSSE'
 
@@ -11,7 +11,58 @@ const inputText = ref('')
 const chatContainer = ref(null)
 const inputRef = ref(null)
 
-/** 发送消息 */
+// ===== 逐字动画引擎 =====
+const textQueue = ref([])       // 待渲染的字符队列
+let animatorTimer = null        // setInterval ID
+let targetMsg = null            // 当前正在动画的 message 对象
+
+/** 启动逐字动画 — 每 25ms 从队列取出 1-3 个字符追加到消息中 */
+function startAnimator(msg) {
+  targetMsg = msg
+  if (animatorTimer) return  // 已在运行
+
+  animatorTimer = setInterval(() => {
+    if (textQueue.value.length === 0 && !isStreaming.value) {
+      stopAnimator()
+      return
+    }
+    // 每次取 1-3 个字符（英文多取，中文少取）
+    const take = textQueue.value.length > 0
+      ? Math.min(textQueue.value.length, 2)
+      : 0
+    if (take > 0) {
+      const chars = textQueue.value.splice(0, take)
+      targetMsg.content += chars.join('')
+      scrollToBottom()
+    }
+  }, 25)
+}
+
+function stopAnimator() {
+  if (animatorTimer) {
+    clearInterval(animatorTimer)
+    animatorTimer = null
+  }
+  // 清空剩余队列
+  if (targetMsg && textQueue.value.length > 0) {
+    targetMsg.content += textQueue.value.join('')
+    textQueue.value = []
+  }
+  if (targetMsg) {
+    targetMsg.isStreaming = false
+    targetMsg = null
+  }
+  scrollToBottom()
+}
+
+onUnmounted(stopAnimator)
+
+/** 将文本 chunk 拆分为字符数组推入队列 */
+function enqueueText(text) {
+  textQueue.value.push(...text.split(''))
+}
+
+// ===== 发送消息 =====
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
@@ -26,48 +77,41 @@ async function sendMessage() {
 
   const assistantMsg = { role: 'assistant', content: '', isStreaming: true }
   messages.value.push(assistantMsg)
+  startAnimator(assistantMsg)
 
   await start('/api/agent/chat', { messages: apiMessages }, {
     onThinking(chunk) {
-      assistantMsg.content += chunk
-      scrollToBottom()
+      enqueueText(chunk)
     },
     onDone() {
-      assistantMsg.isStreaming = false
-      scrollToBottom()
+      stopAnimator()
     },
     onError(msg) {
-      assistantMsg.content = ''
-      assistantMsg.isStreaming = false
-      assistantMsg.error = msg
+      stopAnimator()
+      assistantMsg.content = msg
     },
   })
 }
 
 function stopGeneration() {
   abort()
+  stopAnimator()
   const last = messages.value[messages.value.length - 1]
-  if (last?.isStreaming) {
-    last.isStreaming = false
-    if (!last.content) last.content = '（已停止生成）'
-  }
+  if (last && !last.content) last.content = '（已停止生成）'
 }
 
 function clearChat() {
+  stopAnimator()
   messages.value = []
 }
 
 async function scrollToBottom() {
   await nextTick()
   if (chatContainer.value) {
-    chatContainer.value.scrollTo({
-      top: chatContainer.value.scrollHeight,
-      behavior: 'smooth',
-    })
+    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
   }
 }
 
-// 输入框自动聚焦
 watch(() => isStreaming.value, (v) => {
   if (!v) inputRef.value?.focus()
 })
