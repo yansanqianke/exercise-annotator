@@ -73,37 +73,24 @@ async function sendMessage() {
 }
 
 let stopTyping = false
-let typeTimer = null
 
 /** 打字机动画 — 逐字显示文字 */
-function typewriter(msgObj, fullText, speed = 30) {
-  return new Promise((resolve) => {
-    let i = 0
-    stopTyping = false
-    typeTimer = setInterval(async () => {
-      if (stopTyping) {
-        clearInterval(typeTimer)
-        msgObj.content = fullText
-        resolve()
-        return
-      }
-      if (i >= fullText.length) {
-        clearInterval(typeTimer)
-        resolve()
-        return
-      }
-      const take = fullText.charCodeAt(i) > 127 ? 1 : 2
-      msgObj.content = fullText.slice(0, i + take)
-      i += take
-      await nextTick()  // 强制 Vue 重绘
-      scrollToBottom()
-    }, speed)
-  })
+async function typewriter(msgObj, fullText, speed = 50) {
+  stopTyping = false
+  let i = 0
+  while (i < fullText.length && !stopTyping) {
+    const take = fullText.charCodeAt(i) > 127 ? 1 : 2
+    msgObj.content = fullText.slice(0, i + take)
+    i += take
+    await new Promise(r => setTimeout(r, speed))
+    await nextTick()
+    scrollToBottom()
+  }
+  if (stopTyping) msgObj.content = fullText
 }
 
 function stopGeneration() {
   stopTyping = true
-  if (typeTimer) clearInterval(typeTimer)
   abortCtrl?.abort()
   const last = messages.value[messages.value.length - 1]
   if (last?.isStreaming) {
