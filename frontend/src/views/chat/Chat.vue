@@ -55,7 +55,7 @@ async function sendMessage() {
           const evt = JSON.parse(p.slice(6))
           if (evt.type === 'thinking') {
             assistantMsg.content += evt.content
-            // 每次追加后让出主线程给浏览器渲染
+            // 调试：每 250ms 输出一个字符
             await new Promise(r => setTimeout(r, 0))
           }
           else if (evt.type === 'done') assistantMsg.isStreaming = false

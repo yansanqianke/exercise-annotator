@@ -2,6 +2,7 @@
 
 import json
 import time
+import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -70,10 +71,31 @@ async def chat(
         error = None
         total_text = ""
         usage = {}
+        buffer = []
+        last_flush = time.time()
+
+        def flush_buffer():
+            nonlocal last_flush
+            if buffer:
+                joined = "".join(buffer)
+                buffer.clear()
+                last_flush = time.time()
+                return joined
+            return None
+
         try:
             for text_chunk in chat_stream(db, body.messages, usage_container=usage):
                 total_text += text_chunk
-                yield _sse_event("thinking", text_chunk)
+                buffer.append(text_chunk)
+                # 每 50ms 发送一次积累的内容（避免 TCP Nagle 合并小包）
+                if time.time() - last_flush >= 0.05:
+                    flushed = flush_buffer()
+                    if flushed:
+                        yield _sse_event("thinking", flushed)
+            # 发完剩余
+            flushed = flush_buffer()
+            if flushed:
+                yield _sse_event("thinking", flushed)
             yield _sse_event("done", "对话完成")
         except ValueError as e:
             error = str(e)
