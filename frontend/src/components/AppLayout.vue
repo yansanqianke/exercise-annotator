@@ -29,7 +29,6 @@ const menuItems = computed(() => {
     items.push({ group: '系统管理', children: [
       { path: '/admin/users', label: '用户管理', icon: '👥' },
       { path: '/admin/llm-config', label: '大模型配置', icon: '⚙️' },
-      { path: '/admin/agents', label: '智能体', icon: '🤖' },
       { path: '/admin/logs', label: '系统日志', icon: '📋' },
     ]})
   }

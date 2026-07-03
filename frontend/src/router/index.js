@@ -13,7 +13,6 @@ const routes = [
   { path: '/annotate', redirect: '/questions' },
   { path: '/chat', name: 'Chat', component: () => import('../views/chat/Chat.vue'), meta: { requiresAuth: true, title: 'AI 对话' } },
   { path: '/admin/users', name: 'AdminUsers', component: () => import('../views/admin/Users.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: '用户管理' } },
-  { path: '/admin/agents', name: 'AdminAgents', component: () => import('../views/admin/Agents.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: '智能体管理' } },
   { path: '/admin/logs', name: 'AdminLogs', component: () => import('../views/admin/Logs.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: '系统日志' } },
   { path: '/admin/llm-config', name: 'LLMConfig', component: () => import('../views/admin/LLMConfig.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: '大模型配置' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
