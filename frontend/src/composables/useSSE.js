@@ -19,8 +19,11 @@ export function useSSE() {
     isStreaming.value = true
 
     const token = localStorage.getItem('access_token')
-    // 自动添加 /api 前缀（axios 之外 fetch 不共享 baseURL）
-    const fullUrl = url.startsWith('/api') ? url : `/api${url}`
+    // 直连后端避免 Vite/Nginx 代理缓冲 SSE 流
+    const apiPath = url.startsWith('/api') ? url : `/api${url}`
+    const fullUrl = import.meta.env.DEV
+      ? `http://localhost:8000${apiPath}`
+      : apiPath
 
     try {
       const response = await fetch(fullUrl, {
