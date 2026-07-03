@@ -315,11 +315,6 @@ onMounted(async () => {
             <span v-for="k in currentQuestion.kp_maps" :key="k.kp_id" class="meta-badge kp">{{ k.knowledge_point.code }}</span>
           </div>
 
-          <div v-if="reasoning" class="detail-reasoning">
-            <div class="section-label">推理过程</div>
-            <pre class="reasoning-text">{{ reasoning }}</pre>
-          </div>
-
           <div v-if="result" class="detail-result">
             <div class="section-label">标注结果</div>
             <div class="result-row"><span>题型</span><strong>{{ result.question_type }}</strong></div>
