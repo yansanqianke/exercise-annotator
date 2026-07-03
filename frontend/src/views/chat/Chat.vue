@@ -84,7 +84,7 @@ async function sendMessage() {
       enqueueText(chunk)
     },
     onDone() {
-      stopAnimator()
+      // 不主动停止，让动画器在队列清空后自己结束
     },
     onError(msg) {
       stopAnimator()
