@@ -18,7 +18,8 @@ from app.services.llm import chat_stream
 router = APIRouter(prefix="/api/agent", tags=["智能体调用"])
 
 
-def _write_log(user_id: int, action: str, input_summary: str, status: str = "success"):
+def _write_log(user_id: int, action: str, input_summary: str, status: str = "success",
+               latency_ms: int = 0, tokens_used: int = 0):
     """写入系统日志（独立 session，避免 SSE 流结束后原 session 已关闭）"""
     from app.core.database import SessionLocal
     db = SessionLocal()
@@ -28,11 +29,13 @@ def _write_log(user_id: int, action: str, input_summary: str, status: str = "suc
             action=action,
             input_summary=input_summary[:200],
             status=status,
+            latency_ms=latency_ms,
+            tokens_used=tokens_used,
         )
         db.add(log)
         db.commit()
     except Exception:
-        pass  # 日志写入失败不影响主流程
+        pass
     finally:
         db.close()
 
@@ -65,8 +68,10 @@ async def chat(
     async def event_generator():
         start = time.time()
         error = None
+        total_text = ""
         try:
             for text_chunk in chat_stream(db, body.messages):
+                total_text += text_chunk
                 yield _sse_event("thinking", text_chunk)
             yield _sse_event("done", "对话完成")
         except ValueError as e:
@@ -77,7 +82,10 @@ async def chat(
             yield _sse_event("error", error)
         finally:
             summary = body.messages[-1]["content"][:200] if body.messages else ""
-            _write_log(current_user.id, "chat", summary, "error" if error else "success")
+            latency = int((time.time() - start) * 1000)
+            tokens = len(total_text) // 2  # 粗略估算：中文约 2 字符/token
+            _write_log(current_user.id, "chat", summary, "error" if error else "success",
+                       latency_ms=latency, tokens_used=tokens)
 
     return StreamingResponse(
         event_generator(),
@@ -97,11 +105,14 @@ async def annotate(
     """
 
     async def event_generator():
+        start = time.time()
         error = None
+        total_text = ""
         try:
             for event_json in annotate_stream(
                 db, body.content, body.subject_id, current_user.id, body.question_id,
             ):
+                total_text += event_json
                 yield f"data: {event_json}\n\n"
         except ValueError as e:
             error = str(e)
@@ -111,7 +122,10 @@ async def annotate(
             yield _sse_event("error", error)
         finally:
             summary = (body.content or f"重新标注题目#{body.question_id}")[:200]
-            _write_log(current_user.id, "annotate", summary, "error" if error else "success")
+            latency = int((time.time() - start) * 1000)
+            tokens = len(total_text) // 2
+            _write_log(current_user.id, "annotate", summary, "error" if error else "success",
+                       latency_ms=latency, tokens_used=tokens)
 
     return StreamingResponse(
         event_generator(),
