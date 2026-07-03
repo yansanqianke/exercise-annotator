@@ -111,7 +111,7 @@ def index_document(
 ):
     """将参考资料解析并写入 Chroma ref_materials"""
     from app.models.document import Document as DocModel
-    from app.services.chroma_service import ref_materials
+    from app.services.chroma_service import ref_materials, init_chroma
 
     doc_record = db.query(DocModel).filter(DocModel.id == doc_id).first()
     if not doc_record:
@@ -127,6 +127,9 @@ def index_document(
             content = f.read()
         text = extract_text(doc_record.filename, content)
         chunks = chunk_text(text)
+
+        # 确保 Chroma 已初始化
+        init_chroma()
 
         # 写入 Chroma ref_materials collection
         for i, chunk in enumerate(chunks):
