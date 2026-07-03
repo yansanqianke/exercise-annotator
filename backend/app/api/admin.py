@@ -1,5 +1,7 @@
 """管理后台接口 — 用户管理、智能体管理、系统日志"""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -150,7 +152,7 @@ class LogResponse(BaseModel):
     tokens_used: int
     latency_ms: int
     status: str
-    created_at: str
+    created_at: datetime
     model_config = {"from_attributes": True}
 
 
