@@ -96,7 +96,8 @@ def _validate_kp_codes(kp_codes: list[str], subject_id: int, db: Session) -> lis
     return valid
 
 
-def annotate_stream(db: Session, content: str | None, subject_id: int, user_id: int, question_id: int | None = None):
+def annotate_stream(db: Session, content: str | None, subject_id: int, user_id: int,
+                    question_id: int | None = None, usage_container: dict | None = None):
     """
     标注管道 — 生成器逐块返回 JSON 事件
 
@@ -151,6 +152,7 @@ def annotate_stream(db: Session, content: str | None, subject_id: int, user_id: 
         model=model,
         messages=[{"role": "user", "content": prompt}],
         stream=True,
+        stream_options={"include_usage": True},
     )
 
     full_text = ""
@@ -159,6 +161,9 @@ def annotate_stream(db: Session, content: str | None, subject_id: int, user_id: 
             text = chunk.choices[0].delta.content
             full_text += text
             yield json.dumps({"type": "thinking", "content": text})
+        if chunk.usage and usage_container is not None:
+            usage_container["completion"] = chunk.usage.completion_tokens or 0
+            usage_container["total"] = chunk.usage.total_tokens or 0
 
     # ④ 解析结构化结果
     parsed = _parse_llm_json(full_text)

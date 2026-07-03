@@ -109,9 +109,11 @@ async def annotate(
         start = time.time()
         error = None
         total_text = ""
+        usage = {}
         try:
             for event_json in annotate_stream(
                 db, body.content, body.subject_id, current_user.id, body.question_id,
+                usage_container=usage,
             ):
                 total_text += event_json
                 yield f"data: {event_json}\n\n"
@@ -124,7 +126,7 @@ async def annotate(
         finally:
             summary = (body.content or f"重新标注题目#{body.question_id}")[:200]
             latency = int((time.time() - start) * 1000)
-            tokens = estimate_tokens(total_text)
+            tokens = usage.get("total", estimate_tokens(total_text))
             _write_log(current_user.id, "annotate", summary, "error" if error else "success",
                        latency_ms=latency, tokens_used=tokens)
 
