@@ -1,49 +1,15 @@
 <!-- AI 对话 — 流式气泡界面 -->
 <script setup>
 import { ref, nextTick, watch } from 'vue'
-import { useSSE } from '../../composables/useSSE'
-
-const { isStreaming, start, abort } = useSSE()
+const isStreaming = ref(false)
+let abortCtrl = null
 
 const messages = ref([])
 const inputText = ref('')
 const chatContainer = ref(null)
 const inputRef = ref(null)
-let flushTimer = null
 
-/** 启动逐字动画 — 每次只取少量字符，关闭时不立即清空 */
-function startFlush(msgObj) {
-  let pending = ''
-  let stopped = false
-
-  const timer = setInterval(() => {
-    if (pending.length === 0) {
-      if (stopped) {
-        clearInterval(timer)
-        scrollToBottom()
-      }
-      return
-    }
-    const take = Math.min(pending.length, 3)
-    msgObj.content += pending.slice(0, take)
-    pending = pending.slice(take)
-    scrollToBottom()
-  }, 25)
-
-  return {
-    feed(text) { pending += text },
-    /** 正常结束：标记停止，定时器自行耗完 */
-    stop() { stopped = true },
-    /** 异常中断：立即清空缓冲并停止 */
-    abort() {
-      stopped = true
-      pending = ''
-      clearInterval(timer)
-    },
-  }
-}
-
-/** 发送消息 */
+/** 发送消息 — 直连后端，最小化处理链路 */
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
@@ -58,24 +24,52 @@ async function sendMessage() {
 
   const assistantMsg = { role: 'assistant', content: '', isStreaming: true }
   messages.value.push(assistantMsg)
-  const flush = startFlush(assistantMsg)
+  isStreaming.value = true
+  abortCtrl = new AbortController()
 
-  await start('/api/agent/chat', { messages: apiMessages }, {
-    onThinking(chunk) { flush.feed(chunk) },
-    onDone() {
-      flush.stop()
-      assistantMsg.isStreaming = false
-    },
-    onError(msg) {
-      flush.abort()
-      assistantMsg.content = msg
-      assistantMsg.isStreaming = false
-    },
-  })
+  try {
+    const res = await fetch('http://localhost:8000/api/agent/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+      },
+      body: JSON.stringify({ messages: apiMessages }),
+      signal: abortCtrl.signal,
+    })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `HTTP ${res.status}`)
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buf = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+      // 按 \n\n 拆分 SSE 事件
+      const parts = buf.split('\n\n')
+      buf = parts.pop() || ''
+      for (const p of parts) {
+        if (!p.startsWith('data: ')) continue
+        try {
+          const evt = JSON.parse(p.slice(6))
+          if (evt.type === 'thinking') assistantMsg.content += evt.content
+          else if (evt.type === 'done') assistantMsg.isStreaming = false
+          else if (evt.type === 'error') assistantMsg.content = evt.content
+        } catch {}
+      }
+      scrollToBottom()
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') assistantMsg.content = e.message
+  } finally {
+    assistantMsg.isStreaming = false
+    isStreaming.value = false
+  }
 }
 
 function stopGeneration() {
-  abort()
+  abortCtrl?.abort()
   const last = messages.value[messages.value.length - 1]
   if (last?.isStreaming) {
     last.isStreaming = false
