@@ -1,67 +1,17 @@
 <!-- AI 对话 — 流式气泡界面 -->
 <script setup>
-import { ref, nextTick, watch, onUnmounted } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useSSE } from '../../composables/useSSE'
 
-const isStreaming = ref(false)
+const { isStreaming, start, abort } = useSSE()
+
 const messages = ref([])
 const inputText = ref('')
 const chatContainer = ref(null)
 const inputRef = ref(null)
-let abortController = null
 
-// ===== 逐字动画引擎 =====
-const textQueue = ref([])       // 待渲染的字符队列
-let animatorTimer = null        // setInterval ID
-let targetMsg = null            // 当前正在动画的 message 对象
-
-/** 启动逐字动画 — 每 25ms 从队列取出 1-3 个字符追加到消息中 */
-function startAnimator(msg) {
-  targetMsg = msg
-  if (animatorTimer) return  // 已在运行
-
-  animatorTimer = setInterval(() => {
-    if (textQueue.value.length === 0 && !isStreaming.value) {
-      stopAnimator()
-      return
-    }
-    // 每次取 1-3 个字符（英文多取，中文少取）
-    const take = textQueue.value.length > 0
-      ? Math.min(textQueue.value.length, 2)
-      : 0
-    if (take > 0) {
-      const chars = textQueue.value.splice(0, take)
-      targetMsg.content += chars.join('')
-      scrollToBottom()
-    }
-  }, 25)
-}
-
-function stopAnimator() {
-  if (animatorTimer) {
-    clearInterval(animatorTimer)
-    animatorTimer = null
-  }
-  // 清空剩余队列
-  if (targetMsg && textQueue.value.length > 0) {
-    targetMsg.content += textQueue.value.join('')
-    textQueue.value = []
-  }
-  if (targetMsg) {
-    targetMsg.isStreaming = false
-    targetMsg = null
-  }
-  scrollToBottom()
-}
-
-onUnmounted(stopAnimator)
-
-/** 将文本 chunk 拆分为字符数组推入队列 */
-function enqueueText(text) {
-  textQueue.value.push(...text.split(''))
-}
-
-// ===== 发送消息（直连后端，不经过代理） =====
+/** 发送消息 */
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
@@ -76,77 +26,48 @@ async function sendMessage() {
 
   const assistantMsg = { role: 'assistant', content: '', isStreaming: true }
   messages.value.push(assistantMsg)
-  startAnimator(assistantMsg)
 
-  isStreaming.value = true
-  const token = localStorage.getItem('access_token')
-  abortController = new AbortController()
-
-  try {
-    const res = await fetch('http://localhost:8000/api/agent/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ messages: apiMessages }),
-      signal: abortController.signal,
-    })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || `HTTP ${res.status}`)
-    }
-
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        try {
-          const event = JSON.parse(line.slice(6))
-          if (event.type === 'thinking') enqueueText(event.content)
-          else if (event.type === 'error') throw new Error(event.content)
-        } catch (e) {
-          if (e.message && !e.message.startsWith('Unexpected')) throw e
-        }
-      }
-    }
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      stopAnimator()
-      assistantMsg.content = e.message
-    }
-  } finally {
-    isStreaming.value = false
-  }
+  await start('/api/agent/chat', { messages: apiMessages }, {
+    onThinking(chunk) {
+      assistantMsg.content += chunk
+      scrollToBottom()
+    },
+    onDone() {
+      assistantMsg.isStreaming = false
+      scrollToBottom()
+    },
+    onError(msg) {
+      assistantMsg.content = ''
+      assistantMsg.isStreaming = false
+      assistantMsg.error = msg
+    },
+  })
 }
 
 function stopGeneration() {
-  abortController?.abort()
-  stopAnimator()
+  abort()
   const last = messages.value[messages.value.length - 1]
-  if (last && !last.content) last.content = '（已停止生成）'
+  if (last?.isStreaming) {
+    last.isStreaming = false
+    if (!last.content) last.content = '（已停止生成）'
+  }
 }
 
 function clearChat() {
-  stopAnimator()
   messages.value = []
 }
 
 async function scrollToBottom() {
   await nextTick()
   if (chatContainer.value) {
-    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+    chatContainer.value.scrollTo({
+      top: chatContainer.value.scrollHeight,
+      behavior: 'smooth',
+    })
   }
 }
 
+// 输入框自动聚焦
 watch(() => isStreaming.value, (v) => {
   if (!v) inputRef.value?.focus()
 })
