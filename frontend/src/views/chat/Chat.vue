@@ -1,7 +1,6 @@
 <!-- AI 对话 — 流式气泡界面 -->
 <script setup>
 import { ref, nextTick, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useSSE } from '../../composables/useSSE'
 
 const { isStreaming, start, abort } = useSSE()
@@ -10,6 +9,29 @@ const messages = ref([])
 const inputText = ref('')
 const chatContainer = ref(null)
 const inputRef = ref(null)
+let flushTimer = null
+
+/** 启动节流刷新 — 每 30ms 将缓冲文本渲染到消息中 */
+function startFlush(msgObj) {
+  let pending = ''
+  const timer = setInterval(() => {
+    if (pending) {
+      msgObj.content += pending
+      pending = ''
+      scrollToBottom()
+    }
+  }, 30)
+
+  return {
+    /** 追加文本到缓冲区 */
+    feed(text) { pending += text },
+    /** 停止并清空缓冲 */
+    stop() {
+      clearInterval(timer)
+      if (pending) { msgObj.content += pending; pending = ''; scrollToBottom() }
+    },
+  }
+}
 
 /** 发送消息 */
 async function sendMessage() {
@@ -26,20 +48,18 @@ async function sendMessage() {
 
   const assistantMsg = { role: 'assistant', content: '', isStreaming: true }
   messages.value.push(assistantMsg)
+  const flush = startFlush(assistantMsg)
 
   await start('/api/agent/chat', { messages: apiMessages }, {
-    onThinking(chunk) {
-      assistantMsg.content += chunk
-      scrollToBottom()
-    },
+    onThinking(chunk) { flush.feed(chunk) },
     onDone() {
+      flush.stop()
       assistantMsg.isStreaming = false
-      scrollToBottom()
     },
     onError(msg) {
-      assistantMsg.content = ''
+      flush.stop()
+      assistantMsg.content = msg
       assistantMsg.isStreaming = false
-      assistantMsg.error = msg
     },
   })
 }
