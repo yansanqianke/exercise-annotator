@@ -44,6 +44,11 @@ SAMPLE_DATA = {
 
 def init_admin():
     """创建默认管理员账户"""
+    # 先创建所有表（如果不存在）
+    from app.models.base import Base
+    from app.core.database import engine
+    Base.metadata.create_all(bind=engine)
+
     db = SessionLocal()
 
     existing = db.query(User).filter(User.username == "admin").first()
