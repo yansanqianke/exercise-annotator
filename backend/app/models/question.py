@@ -16,7 +16,7 @@ class Question(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False, comment="所属学科")
     content = Column(Text, nullable=False, comment="题目正文")
-    type = Column(String(20), nullable=True, comment="题型：choice / judgment / short_answer / programming，未标注时为空")
+    type = Column(String(20), nullable=False, default="", comment="题型：choice / judgment / short_answer / programming，未标注时为空")
     difficulty = Column(Integer, nullable=True, comment="难度 1–5，由 LLM 标注")
     source_doc_id = Column(Integer, ForeignKey("documents.id"), nullable=True, comment="来源文档（批量导入时填写）")
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")

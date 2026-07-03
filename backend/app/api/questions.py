@@ -109,7 +109,7 @@ def create_question(
     question = Question(
         subject_id=body.subject_id,
         content=body.content,
-        type=None,
+        type="",
         created_by=current_user.id,
     )
     db.add(question)
