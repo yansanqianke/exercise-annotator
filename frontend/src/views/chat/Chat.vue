@@ -11,21 +11,20 @@ const chatContainer = ref(null)
 const inputRef = ref(null)
 let flushTimer = null
 
-/** 启动节流刷新 — 每 30ms 将缓冲文本渲染到消息中 */
+/** 启动逐字动画 — 每次只从缓冲区取少量字符，模拟打字效果 */
 function startFlush(msgObj) {
   let pending = ''
   const timer = setInterval(() => {
-    if (pending) {
-      msgObj.content += pending
-      pending = ''
-      scrollToBottom()
-    }
-  }, 30)
+    if (pending.length === 0) return
+    // 每次取 1-3 个字符（英文多取，中文少取）
+    const take = Math.min(pending.length, 3)
+    msgObj.content += pending.slice(0, take)
+    pending = pending.slice(take)
+    scrollToBottom()
+  }, 25)
 
   return {
-    /** 追加文本到缓冲区 */
     feed(text) { pending += text },
-    /** 停止并清空缓冲 */
     stop() {
       clearInterval(timer)
       if (pending) { msgObj.content += pending; pending = ''; scrollToBottom() }
