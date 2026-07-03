@@ -1,6 +1,6 @@
 """大模型配置 & 智能体 & 系统日志模型"""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
@@ -48,4 +48,4 @@ class SystemLog(Base):
     tokens_used = Column(Integer, default=0, comment="消耗 token 数")
     latency_ms = Column(Integer, default=0, comment="耗时（毫秒）")
     status = Column(String(20), default="success", comment="状态：success / error")
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), comment="调用时间")
+    created_at = Column(DateTime, nullable=False, default=datetime.now, comment="调用时间")

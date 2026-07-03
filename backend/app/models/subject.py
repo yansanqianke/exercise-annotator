@@ -1,6 +1,6 @@
 """学科模型"""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
@@ -18,7 +18,7 @@ class Subject(Base):
     name = Column(String(100), nullable=False, comment="学科名称，如 数据结构")
     description = Column(Text, default="", comment="简介")
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), comment="创建时间")
+    created_at = Column(DateTime, nullable=False, default=datetime.now, comment="创建时间")
 
     # 关联
     creator = relationship("User", back_populates="subjects")

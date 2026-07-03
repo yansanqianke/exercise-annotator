@@ -1,6 +1,6 @@
 """题目模型"""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
@@ -20,7 +20,7 @@ class Question(Base):
     difficulty = Column(Integer, nullable=True, comment="难度 1–5，由 LLM 标注")
     source_doc_id = Column(Integer, ForeignKey("documents.id"), nullable=True, comment="来源文档（批量导入时填写）")
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False, comment="创建者")
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), comment="创建时间")
+    created_at = Column(DateTime, nullable=False, default=datetime.now, comment="创建时间")
 
     # 关联
     subject = relationship("Subject", back_populates="questions")

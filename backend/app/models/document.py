@@ -1,6 +1,6 @@
 """文档模型"""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
@@ -20,7 +20,7 @@ class Document(Base):
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False, comment="所属学科")
     status = Column(String(20), default="pending", comment="状态：pending / processing / done / failed")
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False, comment="上传者")
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), comment="上传时间")
+    created_at = Column(DateTime, nullable=False, default=datetime.now, comment="上传时间")
 
     # 关联
     creator = relationship("User", back_populates="documents")
