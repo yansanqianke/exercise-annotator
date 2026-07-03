@@ -54,7 +54,11 @@ export function useSSE() {
           if (line.startsWith('data: ')) {
             try {
               const event = JSON.parse(line.slice(6))
-              if (event.type === 'thinking') onThinking?.(event.content)
+              if (event.type === 'thinking') {
+                onThinking?.(event.content)
+                // 让浏览器有机会渲染（避免一次性蹦出来）
+                await new Promise(r => setTimeout(r, 0))
+              }
               else if (event.type === 'done') onDone?.()
               else if (event.type === 'error') onError?.(event.content)
             } catch { /* 解析失败跳过 */ }
