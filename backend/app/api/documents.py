@@ -11,9 +11,20 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.document import Document
+from app.models.config import SystemLog
 from app.services.parser import chunk_text, extract_text
 
 router = APIRouter(prefix="/api/documents", tags=["文档管理"])
+
+def _write_log(db: Session, user_id: int, action: str, summary: str, status: str = "success"):
+    """写入系统日志"""
+    try:
+        log = SystemLog(user_id=user_id, action=action, input_summary=summary[:200], status=status)
+        db.add(log)
+        db.commit()
+    except Exception:
+        pass
+
 
 # 上传文件存储目录
 UPLOAD_DIR = "data/uploads"
@@ -124,6 +135,7 @@ def index_document(
 
         doc_record.status = "done"
         db.commit()
+        _write_log(db, current_user.id, "index_doc", doc_record.original_name[:200])
         return {"status": "done", "chunks": len(chunks)}
     except Exception as e:
         doc_record.status = "failed"
@@ -205,7 +217,7 @@ def extract_questions(
 
         doc_record.status = "done"
         db.commit()
-
+        _write_log(db, current_user.id, "extract_questions", f"提取{saved}题")
         return {"questions": questions, "saved": saved}
     except Exception as e:
         doc_record.status = "failed"
