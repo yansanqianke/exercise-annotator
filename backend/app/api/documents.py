@@ -38,6 +38,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.get("")
 def list_documents(
     subject_id: int | None = Query(None),
+    doc_type: str | None = Query(None, description="按类型过滤：reference 或 questions"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -48,6 +49,8 @@ def list_documents(
     query = db.query(DocModel)
     if subject_id is not None:
         query = query.filter(DocModel.subject_id == subject_id)
+    if doc_type is not None:
+        query = query.filter(DocModel.doc_type == doc_type)
     documents = query.order_by(DocModel.id.desc()).all()
     return [
         DocumentResponse(

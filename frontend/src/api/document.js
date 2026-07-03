@@ -10,7 +10,7 @@ export function uploadDocumentApi(formData) {
 
 /** 获取文档列表 */
 export function getDocumentsApi(params) {
-  return request.get('/documents', { params }).then((r) => r.data)
+  return request.get('/documents', { params: { ...params, doc_type: 'reference' } }).then((r) => r.data)
 }
 
 /** 索引参考资料 */
