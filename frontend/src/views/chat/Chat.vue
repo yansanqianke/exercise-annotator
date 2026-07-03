@@ -83,10 +83,7 @@ async function sendMessage() {
   abortController = new AbortController()
 
   try {
-    const url = import.meta.env.DEV
-      ? 'http://localhost:8000/api/agent/chat'
-      : '/api/agent/chat'
-    const res = await fetch(url, {
+    const res = await fetch('http://localhost:8000/api/agent/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ messages: apiMessages }),
