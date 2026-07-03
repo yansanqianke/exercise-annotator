@@ -12,7 +12,6 @@ const routes = [
   { path: '/documents', name: 'Documents', component: () => import('../views/documents/DocumentList.vue'), meta: { requiresAuth: true, title: '参考资料' } },
   { path: '/annotate', redirect: '/questions' },
   { path: '/chat', name: 'Chat', component: () => import('../views/chat/Chat.vue'), meta: { requiresAuth: true, title: 'AI 对话' } },
-  { path: '/type-test', name: 'TypeTest', component: () => import('../views/chat/TypeTest.vue'), meta: { requiresAuth: true, title: '打字机测试' } },
   { path: '/admin/users', name: 'AdminUsers', component: () => import('../views/admin/Users.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: '用户管理' } },
   { path: '/admin/logs', name: 'AdminLogs', component: () => import('../views/admin/Logs.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: '系统日志' } },
   { path: '/admin/llm-config', name: 'LLMConfig', component: () => import('../views/admin/LLMConfig.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: '大模型配置' } },
