@@ -84,6 +84,8 @@ async def chat(
             return None
 
         try:
+            # 先发填充注释，撑满浏览器 ReadableStream 初始缓冲
+            yield ":" + " " * 2048 + "\n\n"
             for text_chunk in chat_stream(db, body.messages, usage_container=usage):
                 total_text += text_chunk
                 buffer.append(text_chunk)
@@ -154,6 +156,24 @@ async def annotate(
 
     return StreamingResponse(
         event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/chat-test")
+async def chat_test():
+    """调试用：纯计数 SSE，每 1 秒发一条，排除 LLM 因素"""
+    async def test_gen():
+        # 关键：先发 2KB 填充注释，撑满浏览器 ReadableStream 初始缓冲
+        yield ":" + " " * 2048 + "\n\n"
+        for i in range(1, 11):
+            yield _sse_event("thinking", f"[{i}/10] 测试消息 #{i}\n")
+            await asyncio.sleep(1)
+        yield _sse_event("done", "测试完成")
+
+    return StreamingResponse(
+        test_gen(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
