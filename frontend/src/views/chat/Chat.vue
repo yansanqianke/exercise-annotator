@@ -9,7 +9,7 @@ const inputText = ref('')
 const chatContainer = ref(null)
 const inputRef = ref(null)
 
-/** 发送消息 */
+/** 发送消息 — SSE 边收边打 */
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
@@ -22,13 +22,47 @@ async function sendMessage() {
     .filter(m => !m.isStreaming)
     .map(m => ({ role: m.role, content: m.content }))
 
-  const assistantMsg = { role: 'assistant', content: '', isStreaming: true }
-  messages.value.push(assistantMsg)
+  const msgRef = { role: 'assistant', content: '', isStreaming: true }
+  messages.value.push(msgRef)
+  const idx = messages.value.length - 1
   isStreaming.value = true
   abortCtrl = new AbortController()
 
+  // 共享缓冲
+  let pending = ''
+  let streamDone = false
+
+  // 打字机：持续从缓冲区取字显示
+  async function runTypewriter() {
+    stopTyping = false
+    let i = 0
+    while (true) {
+      if (stopTyping) break
+      if (i < pending.length) {
+        const take = pending.charCodeAt(i) > 127 ? 1 : 2
+        const target = messages.value[idx]
+        if (target) target.content = pending.slice(0, i + take)
+        i += take
+        await nextTick()
+        scrollToBottom()
+        await new Promise(r => setTimeout(r, 30))
+      } else if (streamDone) {
+        break
+      } else {
+        // 等待更多数据
+        await new Promise(r => setTimeout(r, 30))
+      }
+    }
+    if (stopTyping) {
+      const target = messages.value[idx]
+      if (target) target.content = pending
+    }
+  }
+
+  // 启动打字机
+  const twPromise = runTypewriter()
+
   try {
-    // 先收集完整回复
     const res = await fetch('http://localhost:8000/api/agent/chat', {
       method: 'POST',
       headers: {
@@ -42,7 +76,6 @@ async function sendMessage() {
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
-    let fullText = ''
     let buf = ''
 
     while (true) {
@@ -55,20 +88,18 @@ async function sendMessage() {
         if (!p.startsWith('data: ')) continue
         try {
           const evt = JSON.parse(p.slice(6))
-          if (evt.type === 'thinking') fullText += evt.content
+          if (evt.type === 'thinking') pending += evt.content
           else if (evt.type === 'error') throw new Error(evt.content)
         } catch {}
       }
     }
-
-    // 逐字动画显示 — 用 messages 中的响应式对象
-    const msgRef = messages.value[messages.value.length - 1]
-    if (fullText) await typewriter(msgRef, fullText)
-    msgRef.isStreaming = false
   } catch (e) {
-    if (e.name !== 'AbortError') assistantMsg.content = e.message
+    if (e.name !== 'AbortError') msgRef.content = e.message
   } finally {
-    assistantMsg.isStreaming = false
+    streamDone = true
+    await twPromise
+    const target = messages.value[idx]
+    if (target) target.isStreaming = false
     isStreaming.value = false
   }
 }
