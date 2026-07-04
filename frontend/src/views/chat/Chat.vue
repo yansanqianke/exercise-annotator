@@ -53,10 +53,7 @@ async function sendMessage() {
         await new Promise(r => setTimeout(r, 30))
       }
     }
-    if (stopTyping) {
-      const target = messages.value[idx]
-      if (target) target.content = pending
-    }
+    // 停止时保留已显示的内容，不冲掉缓冲
   }
 
   // 启动打字机
