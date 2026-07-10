@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth'
 import { getSubjectsApi } from '../api/subject'
 import { getKPsApi } from '../api/kp'
 import { getQuestionsApi } from '../api/question'
+import { EditPen, Refresh, Search } from '@element-plus/icons-vue'
 
 const authStore = useAuthStore()
 const stats = ref({ subjects: 0, kps: 0, questions: 0, annotated: 0 })
@@ -45,17 +46,17 @@ onMounted(loadStats)
     <!-- 核心能力 -->
     <div class="features">
       <div class="feature-card">
-        <div class="feature-icon">✍️</div>
+        <div class="feature-icon"><el-icon :size="28"><EditPen /></el-icon></div>
         <h3>智能标注</h3>
         <p>输入题目即可自动识别涉及的知识点、难度等级和题型。支持选择题、判断题、简答题和编程题四种题型。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔄</div>
+        <div class="feature-icon"><el-icon :size="28"><Refresh /></el-icon></div>
         <h3>双向驱动</h3>
         <p>教师手动创建知识点 + LLM 分析建议新知识点，教师确认后自动入库。知识库从零开始也能自然生长，解决冷启动问题。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔍</div>
+        <div class="feature-icon"><el-icon :size="28"><Search /></el-icon></div>
         <h3>语义检索</h3>
         <p>知识点向量化存储，标注时自动检索相关候选。参考资料索引后在标注中提供上下文，提升标注准确度。</p>
       </div>
@@ -102,7 +103,7 @@ onMounted(loadStats)
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: var(--radius-md); padding: var(--space-lg);
 }
-.feature-icon { font-size: 28px; margin-bottom: 8px; }
+.feature-icon { margin-bottom: 8px; color: var(--color-primary); }
 .feature-card h3 { font-family: var(--font-heading); font-size: 16px; margin-bottom: 6px; }
 .feature-card p { font-size: 13px; line-height: 1.6; color: var(--color-text-secondary); }
 

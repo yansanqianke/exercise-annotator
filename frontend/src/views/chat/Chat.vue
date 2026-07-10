@@ -1,6 +1,7 @@
 <!-- AI 对话 — 流式气泡界面 -->
 <script setup>
 import { ref, nextTick, watch } from 'vue'
+import { UserFilled, ChatDotRound } from '@element-plus/icons-vue'
 const isStreaming = ref(false)
 let abortCtrl = null
 
@@ -155,7 +156,7 @@ watch(() => isStreaming.value, (v) => {
       <!-- 空状态 -->
       <div v-if="messages.length === 0" class="empty-state">
         <div class="empty-illustration">
-          <span class="empty-icon">✦</span>
+          <span class="empty-icon"><el-icon :size="28"><ChatDotRound /></el-icon></span>
         </div>
         <h3>开始一段对话</h3>
         <p>向 AI 助教提问关于学科知识、题目解析等问题</p>
@@ -164,7 +165,7 @@ watch(() => isStreaming.value, (v) => {
       <!-- 消息列表 -->
       <div v-for="(msg, i) in messages" :key="i" :class="['msg-row', msg.role]">
         <div class="msg-avatar">
-          {{ msg.role === 'user' ? '👤' : '✦' }}
+          <el-icon :size="16"><component :is="msg.role === 'user' ? UserFilled : ChatDotRound" /></el-icon>
         </div>
         <div class="msg-body">
           <div class="msg-bubble" :class="{ streaming: msg.isStreaming }">
@@ -243,7 +244,7 @@ watch(() => isStreaming.value, (v) => {
   display: flex; align-items: center; justify-content: center;
   margin-bottom: var(--space-lg);
 }
-.empty-icon { font-size: 28px; color: var(--color-accent); }
+.empty-icon { color: var(--color-accent); }
 .empty-state h3 {
   font-family: var(--font-heading); font-size: 20px;
   margin-bottom: 8px; color: var(--color-text);
@@ -266,7 +267,7 @@ watch(() => isStreaming.value, (v) => {
   width: 36px; height: 36px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
+  flex-shrink: 0;
 }
 .msg-row.user .msg-avatar { background: #e8ecf6; }
 .msg-row.assistant .msg-avatar { background: #faf0e0; }

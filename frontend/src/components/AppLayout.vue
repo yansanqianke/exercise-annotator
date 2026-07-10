@@ -3,6 +3,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { Collection, PriceTag, Upload, Document, Reading, ChatDotRound, User, Setting, Monitor } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,23 +15,23 @@ const sidebarCollapsed = ref(false)
 const menuItems = computed(() => {
   const items = [
     { group: '知识库', children: [
-      { path: '/subjects', label: '学科管理', icon: '📚' },
-      { path: '/knowledge-points', label: '知识点', icon: '🏷️' },
+      { path: '/subjects', label: '学科管理', icon: Collection },
+      { path: '/knowledge-points', label: '知识点', icon: PriceTag },
     ]},
     { group: '题目中心', children: [
-      { path: '/import', label: '题目导入', icon: '📥' },
-      { path: '/questions', label: '题目管理', icon: '📋' },
-      { path: '/documents', label: '参考资料', icon: '📖' },
+      { path: '/import', label: '题目导入', icon: Upload },
+      { path: '/questions', label: '题目管理', icon: Document },
+      { path: '/documents', label: '参考资料', icon: Reading },
     ]},
     { group: '工具', children: [
-      { path: '/chat', label: 'AI 对话', icon: '💬' },
+      { path: '/chat', label: 'AI 对话', icon: ChatDotRound },
     ]},
   ]
   if (authStore.isAdmin) {
     items.push({ group: '系统管理', children: [
-      { path: '/admin/users', label: '用户管理', icon: '👥' },
-      { path: '/admin/llm-config', label: '大模型配置', icon: '⚙️' },
-      { path: '/admin/logs', label: '系统日志', icon: '📋' },
+      { path: '/admin/users', label: '用户管理', icon: User },
+      { path: '/admin/llm-config', label: '大模型配置', icon: Setting },
+      { path: '/admin/logs', label: '系统日志', icon: Monitor },
     ]})
   }
   return items
@@ -69,7 +70,7 @@ function handleLogout() {
             @click="navigate(item.path)"
             :title="sidebarCollapsed ? item.label : ''"
           >
-            <span class="nav-icon">{{ item.icon }}</span>
+            <el-icon class="nav-icon" :size="16"><component :is="item.icon" /></el-icon>
             <span v-show="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
           </a>
         </template>
@@ -168,7 +169,7 @@ function handleLogout() {
   background: rgba(255,255,255,.08);
   border-left-color: var(--color-accent);
 }
-.nav-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+.nav-icon { flex-shrink: 0; color: inherit; }
 .nav-label { overflow: hidden; text-overflow: ellipsis; }
 
 .sidebar-footer { padding: 12px 18px; border-top: 1px solid rgba(255,255,255,.08); }

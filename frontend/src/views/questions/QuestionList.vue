@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSubjectsApi } from '../../api/subject'
 import { getKPsApi, createKPApi } from '../../api/kp'
 import { getQuestionsApi, getQuestionApi, updateQuestionKPsApi, deleteQuestionApi } from '../../api/question'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 // ===== 状态 =====
 const subjects = ref([])
@@ -335,7 +336,7 @@ onMounted(async () => {
           </el-button>
         </template>
         <div v-else class="detail-empty">
-          <span>✦</span>
+          <el-icon :size="36"><InfoFilled /></el-icon>
           <p>点击左侧题目查看详情</p>
         </div>
       </div>
@@ -426,5 +427,5 @@ onMounted(async () => {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   height: 200px; color: var(--color-text-muted);
 }
-.detail-empty span { font-size: 36px; margin-bottom: 8px; color: var(--color-accent); opacity: .4; }
+.detail-empty .el-icon { margin-bottom: 8px; color: var(--color-accent); opacity: .4; }
 </style>

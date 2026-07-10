@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSubjectsApi } from '../../api/subject'
 import { uploadDocumentApi, extractQuestionsApi } from '../../api/document'
+import { UploadFilled } from '@element-plus/icons-vue'
 
 const subjects = ref([])
 const selectedSubject = ref(null)
@@ -90,7 +91,7 @@ function handleFileChange(file) { extractFile.value = file.raw }
         <el-upload :auto-upload="false" :limit="1" :on-change="handleFileChange" drag
           :disabled="!selectedSubject" style="width:100%">
           <div class="upload-area">
-            <span class="upload-icon">📄</span>
+            <span class="upload-icon"><el-icon :size="36"><UploadFilled /></el-icon></span>
             <p>点击或拖拽文件到此区域</p>
             <p class="upload-hint">支持 PDF、Word、PPT、TXT</p>
           </div>
@@ -137,7 +138,7 @@ function handleFileChange(file) { extractFile.value = file.raw }
 .char-count { font-size: 12px; color: var(--color-text-muted); }
 
 .upload-area { display: flex; flex-direction: column; align-items: center; padding: 24px; cursor: pointer; }
-.upload-icon { font-size: 36px; margin-bottom: 8px; }
+.upload-icon { margin-bottom: 8px; color: var(--color-text-muted); }
 .upload-area p { font-size: 14px; color: var(--color-text-secondary); }
 .upload-hint { font-size: 12px !important; color: var(--color-text-muted) !important; margin-top: 4px; }
 
