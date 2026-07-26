@@ -1,6 +1,8 @@
-"""文档解析服务 — 支持 PDF、Word、PPT 文本提取"""
+"""文档解析服务 — 支持 PDF、Word、PPT 文本提取与分块"""
 
 import io
+
+from llama_index.core.node_parser import SentenceSplitter
 
 
 def extract_text(filename: str, content: bytes) -> str:
@@ -57,15 +59,13 @@ def _extract_pptx(content: bytes) -> str:
     return "\n".join(text_parts)
 
 
-def chunk_text(text: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
-    """简单分块 — 按字符数切分，前后有重叠"""
-    if len(text) <= chunk_size:
-        return [text]
+def chunk_text(text: str, chunk_size: int = 512, overlap: int = 64) -> list[str]:
+    """按句子边界分块 — 使用 LlamaIndex SentenceSplitter，基于 token 数切分"""
+    if not text.strip():
+        return []
 
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = min(start + chunk_size, len(text))
-        chunks.append(text[start:end])
-        start += chunk_size - overlap
-    return chunks
+    splitter = SentenceSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=overlap,
+    )
+    return splitter.split_text(text)

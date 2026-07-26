@@ -27,7 +27,7 @@
 | 后端 | Python 3.11 + FastAPI | 业务逻辑 / API | 异步框架，依赖注入做权限控制，SSE 流式输出 |
 | 关系数据库 | SQLite + SQLAlchemy | 结构化数据持久化 | Alembic 做迁移管理 |
 | 向量数据库 | Chroma | 语义检索 | 嵌入 Python 进程，无需独立服务 |
-| RAG 框架 | LlamaIndex | 文档索引 / 检索 | 负责分块、嵌入、查询管道 |
+| RAG 框架 | LlamaIndex | 文档分块 | 仅用于 SentenceSplitter 分块；检索管道直接使用 Chroma 原生 API 以实现双路检索灵活性 |
 | 大模型 | DeepSeek API | 标注推理 / 对话 | 配置页支持切换 OpenAI / Qwen |
 | 文档解析 | pdfplumber + python-docx + python-pptx | 提取原始文本 | 两种场景：参考资料索引、题目文档提取 |
 | 部署 | Docker Compose | 容器化一键部署 | 前端 Nginx 容器 + 后端 Python 容器 |
@@ -397,10 +397,13 @@ LLM 分析题目 → 建议新 KP（教师确认后入库）
 
 ```
 pdfplumber / python-docx 提取全文
-    → LlamaIndex SimpleDirectoryReader 加载
-    → SentenceSplitter 分块（512 token，overlap 64）
-    → 嵌入写入 ref_materials Collection
+    → LlamaIndex SentenceSplitter 分块（512 token，overlap 64）
+    → Chroma 原生 API 写入 ref_materials Collection
 ```
+
+> **实现调整**：检索管道未使用 LlamaIndex 的 VectorStoreIndex / QueryEngine，而是直接调用 Chroma 原生 API。
+> 原因：标注管道的双路检索（kp_store + ref_materials）需要并行查询两个 Collection，LlamaIndex QueryEngine 原生只绑定单索引。
+> Chroma 原生 API 更灵活且减少一层抽象，LlamaIndex 仅用于 SentenceSplitter 分块。
 
 **场景 B：题目文档 → 批量标注**
 
